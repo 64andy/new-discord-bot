@@ -1,0 +1,14 @@
+.vscode/
+
+# venv
+Include/
+Lib/
+Scripts/
+pyvenv.cfg
+
+# youtube-dl files
+etc/
+share/
+
+# secrets
+.env
