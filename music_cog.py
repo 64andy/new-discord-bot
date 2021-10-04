@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
+https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
+
 Copyright (c) 2019 Valentin B.
 
 A simple music bot written in discord.py using youtube-dl.
@@ -92,7 +94,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
     async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
 
-        partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
+        partial = functools.partial(
+            cls.ytdl.extract_info, search, download=False, process=False)
         data = await loop.run_in_executor(None, partial)
 
         if data is None:
@@ -108,10 +111,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
                     break
 
             if process_info is None:
-                raise YTDLError(f"Couldn't find anything that matches `{search}`")
+                raise YTDLError(
+                    f"Couldn't find anything that matches `{search}`")
 
         webpage_url = process_info['webpage_url']
-        partial = functools.partial(cls.ytdl.extract_info, webpage_url, download=False)
+        partial = functools.partial(
+            cls.ytdl.extract_info, webpage_url, download=False)
         processed_info = await loop.run_in_executor(None, partial)
 
         if processed_info is None:
@@ -125,7 +130,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 try:
                     info = processed_info['entries'].pop(0)
                 except IndexError:
-                    raise YTDLError(f"Couldn't retrieve any matches for `{webpage_url}`")
+                    raise YTDLError(
+                        f"Couldn't retrieve any matches for `{webpage_url}`")
 
         return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
 
@@ -156,14 +162,16 @@ class Song:
         self.requester = source.requester
 
     def create_embed(self):
-        embed = (discord.Embed(title='Now playing',
-                               description=f'```css\n{self.source.title}\n```',
-                               color=discord.Color.blurple())
-                 .add_field(name='Duration', value=self.source.duration)
-                 .add_field(name='Requested by', value=self.requester.mention)
-                 .add_field(name='Uploader', value=f'[{self.source.uploader}]({self.source.uploader_url})')
-                 .add_field(name='URL', value=f'[Click]({self.source.url})')
-                 .set_thumbnail(url=self.source.thumbnail))
+        embed = (
+            discord.Embed(title='Now playing',
+                          description=f'[{self.source.title}]({self.source.url})',
+                          color=discord.Colour(0x38B92A))
+            .add_field(name='Duration', value=self.source.duration)
+            .add_field(name='Requested by', value=self.requester.mention)
+            .add_field(name='Uploader', value=f'[{self.source.uploader}]({self.source.uploader_url})')
+            .add_field(name='URL', value=f'[Click]({self.source.url})')
+            .set_thumbnail(url=self.source.thumbnail)
+        )
 
         return embed
 
@@ -244,6 +252,8 @@ class VoiceState:
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
                     self.bot.loop.create_task(self.stop())
+                    self._ctx.send(
+                        "Bot has timed out. Disconnecting...", delete_after=30.0)
                     return
 
             self.current.source.volume = self._volume
@@ -291,7 +301,8 @@ class Music(commands.Cog):
 
     def cog_check(self, ctx: commands.Context):
         if not ctx.guild:
-            raise commands.NoPrivateMessage('This command can\'t be used in DM channels.')
+            raise commands.NoPrivateMessage(
+                "This command can't be used in DM channels.")
 
         return True
 
@@ -321,7 +332,8 @@ class Music(commands.Cog):
         """
 
         if not channel and not ctx.author.voice:
-            raise VoiceError('You are neither connected to a voice channel nor specified a channel to join.')
+            raise VoiceError(
+                'You are neither connected to a voice channel nor specified a channel to join.')
 
         destination = channel or ctx.author.voice.channel
         if ctx.voice_state.voice:
@@ -330,7 +342,7 @@ class Music(commands.Cog):
 
         ctx.voice_state.voice = await destination.connect()
 
-    @commands.command(name='leave', aliases=['disconnect'])
+    @commands.command(name='leave', aliases=['disconnect', 'fuckoff'])
     @commands.has_permissions(manage_guild=True)
     async def _leave(self, ctx: commands.Context):
         """Clears the queue and leaves the voice channel."""
@@ -354,7 +366,7 @@ class Music(commands.Cog):
         ctx.voice_state.volume = volume / 100
         await ctx.send(f'Volume of the player set to {volume}%')
 
-    @commands.command(name='now', aliases=['current', 'playing'])
+    @commands.command(name='now', aliases=['current', 'playing', 'np'])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
 
@@ -389,7 +401,7 @@ class Music(commands.Cog):
             ctx.voice_state.voice.stop()
             await ctx.message.add_reaction('⏹')
 
-    @commands.command(name='skip')
+    @commands.command(name='skip', aliases=['no'])
     async def _skip(self, ctx: commands.Context):
         """Vote to skip a song. The requester can automatically skip.
         3 skip votes are needed for the song to be skipped.
@@ -503,9 +515,10 @@ class Music(commands.Cog):
     @_play.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
-            raise commands.CommandError('You are not connected to any voice channel.')
+            raise commands.CommandError(
+                'You are not connected to any voice channel.')
 
         if ctx.voice_client:
             if ctx.voice_client.channel != ctx.author.voice.channel:
-                raise commands.CommandError('Bot is already in a voice channel.')
-
+                raise commands.CommandError(
+                    'Bot is already in a voice channel.')
