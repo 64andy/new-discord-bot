@@ -4,6 +4,7 @@ from typing import Dict
 
 TICK_EMOJI = discord.PartialEmoji(name='✅')
 
+
 class Archive(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -16,8 +17,6 @@ class Archive(commands.Cog):
         Sets the given channel to the 'archive' channel.
         Any pinned messages will get put into it.
         """
-        print(f"{channel=}")
-        print(f"{type(channel)=}")
         self.archive_channels[ctx.channel.id] = channel
         await ctx.message.add_reaction(TICK_EMOJI)
 
@@ -25,9 +24,10 @@ class Archive(commands.Cog):
         if last_pin is None:
             # Pins was removed
             return
-        if channel.id not in self.archive_channels:
+        archive_channel = self.archive_channels.get(channel.id)
+        if archive_channel is None:
             print(f"No archive channel set for {channel.name}")
-        archive_channel = self.archive_channels[channel.id]
+            return
         latest_pin: discord.Message = (await channel.pins())[0]
         msg = f"**Original Poster: {latest_pin.author}**:\n{latest_pin.content}"
         await archive_channel.send(msg[:2000])
