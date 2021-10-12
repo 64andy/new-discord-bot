@@ -169,7 +169,6 @@ class Song:
             .add_field(name='Duration', value=self.source.duration)
             .add_field(name='Requested by', value=self.requester.mention)
             .add_field(name='Uploader', value=f'[{self.source.uploader}]({self.source.uploader_url})')
-            .add_field(name='URL', value=f'[Click]({self.source.url})')
             .set_thumbnail(url=self.source.thumbnail)
         )
 
@@ -252,7 +251,7 @@ class VoiceState:
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
                     self.bot.loop.create_task(self.stop())
-                    self._ctx.send(
+                    await self._ctx.send(
                         "Bot has timed out. Disconnecting...", delete_after=30.0)
                     return
 

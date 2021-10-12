@@ -9,7 +9,6 @@ class Archive(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.archive_channels: Dict[int, discord.TextChannel] = {}
-        bot.event(self.on_guild_channel_pins_update)
 
     @commands.command(name='set-archive')
     async def set_archive_channel(self, ctx: commands.Context, *, channel: discord.TextChannel):
@@ -20,7 +19,8 @@ class Archive(commands.Cog):
         self.archive_channels[ctx.channel.id] = channel
         await ctx.message.add_reaction(TICK_EMOJI)
 
-    async def on_guild_channel_pins_update(self, channel: discord.TextChannel, last_pin):
+    @commands.Cog.listener(name="on_guild_channel_pins_update")
+    async def add_pin_to_archive(self, channel: discord.TextChannel, last_pin):
         if last_pin is None:
             # Pins was removed
             return

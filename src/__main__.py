@@ -2,8 +2,8 @@ import os
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
-from music_cog import Music
-from archive_cog import Archive
+
+from .cogs import Music, Archive
 
 # alexa play https://www.youtube.com/watch?v=dv1ypynSLzY
 
@@ -21,15 +21,6 @@ async def on_ready():
         f'Username: {bot.user.name!r}\n'
         f'ID: {bot.user.id}'
     )
-
-
-@bot.event
-async def on_guild_channel_pins_update(channel: discord.TextChannel, last_pin):
-    if last_pin is None:
-        # Pins was removed
-        return
-    print("It might be time")
-    print(await channel.pins())
 
 if __name__ == "__main__":
     load_dotenv()
