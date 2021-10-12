@@ -8,9 +8,9 @@ TICK_EMOJI = discord.PartialEmoji(name='✅')
 class Archive(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.archive_channels: Dict[int, discord.TextChannel] = {}
 
     @commands.command(name='set-archive')
+    @commands.has_guild_permissions(manage_channels=True)
     async def set_archive_channel(self, ctx: commands.Context, *, channel: discord.TextChannel):
         """
         Sets the given channel to the 'archive' channel.
@@ -19,7 +19,7 @@ class Archive(commands.Cog):
         self.archive_channels[ctx.channel.id] = channel
         await ctx.message.add_reaction(TICK_EMOJI)
 
-    @commands.Cog.listener(name="on_guild_channel_pins_update")
+    @commands.Cog.listener(name="guild_channel_pins_update")
     async def add_pin_to_archive(self, channel: discord.TextChannel, last_pin):
         if last_pin is None:
             # Pins was removed
