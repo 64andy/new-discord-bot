@@ -30,6 +30,7 @@ async def on_ready():
 
 if __name__ == "__main__":
     load_dotenv()
+    
     bot.add_cog(Music(bot))
     bot.add_cog(Archive(bot))
     bot.run(os.environ['TOKEN'])

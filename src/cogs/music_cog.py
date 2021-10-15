@@ -247,12 +247,13 @@ class VoiceState:
                 # the player will disconnect due to performance
                 # reasons.
                 try:
-                    async with timeout(180):  # 3 minutes
+                    async with timeout(10):  # 3 minutes
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
+                    self.next.clear()
                     self.bot.loop.create_task(self.stop())
-                    await self._ctx.send(
-                        "Bot has timed out. Disconnecting...", delete_after=30.0)
+                    # del self._ctx.cog.voice_states[ctx.guild.id]
+                    print("I left yum")
                     return
 
             self.current.source.volume = self._volume
@@ -275,7 +276,7 @@ class VoiceState:
 
     async def stop(self):
         self.songs.clear()
-
+        print("Timed out")
         if self.voice:
             await self.voice.disconnect()
             self.voice = None
@@ -368,7 +369,8 @@ class Music(commands.Cog):
     @commands.command(name='now', aliases=['current', 'playing', 'np'])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
-
+        print("_now invoked")
+        
         await ctx.send(embed=ctx.voice_state.current.create_embed())
 
     @commands.command(name='pause')
@@ -409,8 +411,8 @@ class Music(commands.Cog):
         if not ctx.voice_state.is_playing:
             return await ctx.send('Not playing any music right now...')
 
-        voter = ctx.message.author
-        if voter == ctx.voice_state.current.requester:
+        voter: discord.Member = ctx.message.author
+        if voter == ctx.voice_state.current.requester or voter.per:
             await ctx.message.add_reaction('⏭')
             ctx.voice_state.skip()
 
@@ -434,6 +436,7 @@ class Music(commands.Cog):
         You can optionally specify the page to show. Each page contains 10 elements.
         """
 
+        print("_queue called")
         if len(ctx.voice_state.songs) == 0:
             return await ctx.send('Empty queue.')
 

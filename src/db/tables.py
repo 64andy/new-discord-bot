@@ -15,12 +15,16 @@ class BotOptions(Base):
     __tablename__   = "Options"
     id              = Column(BigInteger, primary_key=True)
     game_name       = Column(String, comment="The Discord presence game name")
+    def __repr__(self):
+        return f"BotOptions({self.id=}, {self.game_name=})"
 
-class ServerData(Base):
-    __tablename__   = "Server"
+class GuildSettings(Base):
+    __tablename__   = "Guild"
     id              = Column(BigInteger, primary_key=True, comment="ID of server")
     prefix          = Column(String(MAX_PREFIX_LEN), default="alexa")
     archive_channel = Column(BigInteger, comment="ID of channel")
+    def __repr__(self):
+        return f"GuildSettings({self.id=}, {self.prefix=}, {self.archive_channel=})"
     
     
 if __name__ == "__main__":

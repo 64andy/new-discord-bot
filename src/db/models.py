@@ -1,23 +1,40 @@
 import discord
+from sqlalchemy import select
 
-from . import session
-from .tables import ServerData, BotOptions
+from . import Session
+from .tables import GuildSettings, BotOptions
+
+
+def get_guild_settings(guild: discord.Guild) -> GuildSettings:
+    """
+    Returns the database entry on a given server's settings.
+    
+    If the server isn't registered in the database, it'll be added
+    """
+    stmt = select(GuildSettings).filter_by(id=guild.id)
+    with Session() as session:
+        data = session.execute(stmt).scalar()
+        if data is None:
+            register_guild(guild)
+            data = session.execute(stmt).scalar()
+        return data
 
 
 def register_guild(guild: discord.Guild):
     """
     Gives the guild a database entry.
     """
-    session.add(ServerData(id=guild.id))
-    session.commit()
+    with Session() as session:
+        session.add(GuildSettings(id=guild.id))
+        session.commit()
 
-def get_guild(guild: discord.Guild) -> ServerData:
-    return session.query(ServerData).filter_by(id=guild.id).first()
 
 def get_command_prefix(guild: discord.Guild) -> str:
-    prefix = session.query(ServerData.prefix).filter_by(id=guild.id).first()
-    if prefix is None:                          # Server's not in DB
-        register_server(guild)
-        prefix = ServerData.prefix.default.arg
-    return prefix
+    guild = get_guild_settings(guild)
+    return guild.prefix
 
+def set_archive_channel(guild: discord.Guild, channel: discord.TextChannel):
+    with Session() as session:
+        settings = get_guild_settings(guild)
+        settings.archive_channel = channel.id
+        session.commit()
