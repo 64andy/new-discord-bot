@@ -38,3 +38,9 @@ def set_archive_channel(guild: discord.Guild, channel: discord.TextChannel):
         settings = get_guild_settings(guild)
         settings.archive_channel = channel.id
         session.commit()
+
+def get_archive_channel(guild: discord.Guild):
+    with Session() as session:
+        settings = get_guild_settings(guild)
+        return settings.archive_channel
+        

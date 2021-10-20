@@ -250,9 +250,7 @@ class VoiceState:
                     async with timeout(10):  # 3 minutes
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
-                    self.next.clear()
-                    self.bot.loop.create_task(self.stop())
-                    # del self._ctx.cog.voice_states[ctx.guild.id]
+                    await self.stop()
                     print("I left yum")
                     return
 
@@ -275,11 +273,11 @@ class VoiceState:
             self.voice.stop()
 
     async def stop(self):
-        self.songs.clear()
-        print("Timed out")
-        if self.voice:
-            await self.voice.disconnect()
-            self.voice = None
+        # self.songs.clear()
+        await self._ctx.invoke(self.bot.get_command('leave'))
+        # if self.voice:
+        #     await self.voice.disconnect()
+        #     self.voice = None
 
 
 class Music(commands.Cog):
@@ -450,7 +448,7 @@ class Music(commands.Cog):
         for i, song in enumerate(ctx.voice_state.songs[start:end], start=start):
             queue += f'`{i+1}.` [**{song.source.title}**]({song.source.url})\n'
 
-        embed = (discord.Embed(description=f'**{len(ctx.voice_state,songs)} tracks:**\n\n{queue}')
+        embed = (discord.Embed(description=f'**{len(ctx.voice_state.songs)} tracks:**\n\n{queue}')
                  .set_footer(text=f'Viewing page {page}/{pages}'))
         await ctx.send(embed=embed)
 
@@ -506,7 +504,7 @@ class Music(commands.Cog):
             try:
                 source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send(f'An error occurred while processing this request: {str(error)}')
+                await ctx.send(f'An error occurred while processing this request: {str(e)}')
             else:
                 song = Song(source)
 
