@@ -16,7 +16,7 @@ class Archive(commands.Cog):
         Sets the given channel to the 'archive' channel.
         Any pinned messages will get put into it.
         """
-        self.archive_channels[ctx.channel.id] = channel
+        self.archive_channels[ctx.guild.id] = channel.id
         await ctx.message.add_reaction(TICK_EMOJI)
 
     @commands.Cog.listener(name="guild_channel_pins_update")

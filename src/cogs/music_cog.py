@@ -48,7 +48,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         'audioformat': 'mp3',
         'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
         'restrictfilenames': True,
-        'noplaylist': False,
+        'noplaylist': True,
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'logtostderr': False,
@@ -86,7 +86,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.likes = data.get('like_count')
         self.dislikes = data.get('dislike_count')
         self.stream_url = data.get('url')
-        self.playlist = data.get('playlist')
 
     def __str__(self):
         return f'**{self.title}** by **{self.uploader}**'
@@ -248,12 +247,12 @@ class VoiceState:
                 # the player will disconnect due to performance
                 # reasons.
                 try:
-                    async with timeout(180):  # 3 minutes
+                    async with timeout(10):  # 3 minutes
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
-                    print("zzzzz (timed out)")
-                    await self._ctx.invoke(self.bot.get_command('leave'))
-                    return await self._ctx.send('I\'m sleepy!')
+                    await self.stop()
+                    print("I left yum")
+                    return
 
             self.current.source.volume = self._volume
             self.voice.play(self.current.source, after=self.play_next_song)
@@ -274,11 +273,11 @@ class VoiceState:
             self.voice.stop()
 
     async def stop(self):
-        self.songs.clear()
-        print("Timed out")
-        if self.voice:
-            await self.voice.disconnect()
-            self.voice = None
+        # self.songs.clear()
+        await self._ctx.invoke(self.bot.get_command('leave'))
+        # if self.voice:
+        #     await self.voice.disconnect()
+        #     self.voice = None
 
 
 class Music(commands.Cog):
