@@ -250,7 +250,7 @@ class VoiceState:
                     async with timeout(180):  # 3 minutes
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
-                    await self.stop()
+                    await self._ctx.invoke(self.bot.get_command('leave'))
                     print("This bot needs her beauty sleep! (timed out due to inactivity)")
                     self._ctx.send(content='I\'m sleepy!', delete_after=30)
                     return
@@ -274,11 +274,10 @@ class VoiceState:
             self.voice.stop()
 
     async def stop(self):
-        # self.songs.clear()
-        await self._ctx.invoke(self.bot.get_command('leave'))
-        # if self.voice:
-        #     await self.voice.disconnect()
-        #     self.voice = None
+        self.songs.clear()
+        if self.voice:
+            await self.voice.disconnect()
+            self.voice = None
 
 
 class Music(commands.Cog):
