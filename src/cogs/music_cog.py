@@ -48,7 +48,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         'audioformat': 'mp3',
         'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
         'restrictfilenames': True,
-        'noplaylist': True,
+        'noplaylist': False,
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'logtostderr': False,
@@ -95,8 +95,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(
-            cls.ytdl.extract_info, search, download=False, process=False)
+            cls.ytdl.extract_info, search, download=False, process=True)
         data = await loop.run_in_executor(None, partial)
+
+        # import pickle
+        # pickle.dump(data, open("data.pkl","wb"))
 
         if data is None:
             raise YTDLError(f"Couldn't find anything that matches `{search}`")
@@ -511,6 +514,16 @@ class Music(commands.Cog):
 
                 await ctx.voice_state.songs.put(song)
                 await ctx.send(f'Enqueued {str(source)}')
+
+    @commands.command(name='test')
+    async def _test(self, ctx: commands.Context, testing=None):
+        """quick shortcut to test playback"""
+
+        if testing == None:
+            await self._play(ctx, search="https://www.youtube.com/watch?v=8xwt0uTKSC0")
+
+        if testing == "playlist":
+            await self._play(ctx, search="https://www.youtube.com/playlist?list=OLAK5uy_l1zOAMjxnu3OE8lbtqsItSwRR2LZjIQD0")
 
     @_join.before_invoke
     @_play.before_invoke
