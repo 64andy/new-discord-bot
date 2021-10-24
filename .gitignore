@@ -15,6 +15,7 @@ share/
 
 # secrets
 .env
+secrety-no-peaky/
 
 # misc
 *.db

@@ -91,52 +91,63 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return f'**{self.title}** by **{self.uploader}**'
 
     @classmethod
-    async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
+    async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None) -> list:
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(
             cls.ytdl.extract_info, search, download=False, process=True)
         data = await loop.run_in_executor(None, partial)
 
-        # import pickle
-        # pickle.dump(data, open("data.pkl","wb"))
-
         if data is None:
             raise YTDLError(f"Couldn't find anything that matches `{search}`")
 
+        # print(f"{list(data)=}")
+        # print(f"{data.get('entries')=}")
+        # print(f"{data.get('_type')=}")
+
+        is_playlist = False
+        process_info = []
+
         if 'entries' not in data:
-            process_info = data
-        else:
-            process_info = None
+            # Is a single video
+            process_info.append(data)
+        elif '_type' in data and data['_type'] == 'playlist':
+            # Is a playlist
+            is_playlist = True
             for entry in data['entries']:
                 if entry:
-                    process_info = entry
-                    break
+                    process_info.append(entry)
+                else:
+                    print(f"Ok it can be false? idk, look for me.\n{entry}")
 
-            if process_info is None:
-                raise YTDLError(
-                    f"Couldn't find anything that matches `{search}`")
+        if not process_info:
+            raise YTDLError(
+                f"Couldn't find anything that matches `{search}`")
 
-        webpage_url = process_info['webpage_url']
-        partial = functools.partial(
-            cls.ytdl.extract_info, webpage_url, download=False)
-        processed_info = await loop.run_in_executor(None, partial)
+        output_sources = []
+        for video in process_info:
+            webpage_url = video['webpage_url']
+            partial = functools.partial(
+                cls.ytdl.extract_info, webpage_url, download=False)
+            processed_info = await loop.run_in_executor(None, partial)
 
-        if processed_info is None:
-            raise YTDLError(f"Couldn't fetch `{webpage_url}`")
+            if processed_info is None:
+                raise YTDLError(f"Couldn't fetch `{webpage_url}`")
 
-        if 'entries' not in processed_info:
-            info = processed_info
-        else:
-            info = None
-            while info is None:
-                try:
-                    info = processed_info['entries'].pop(0)
-                except IndexError:
-                    raise YTDLError(
-                        f"Couldn't retrieve any matches for `{webpage_url}`")
+            if 'entries' not in processed_info:
+                info = processed_info
+            else:
+                info = None
+                while info is None:
+                    try:
+                        info = processed_info['entries'].pop(0)
+                    except IndexError:
+                        raise YTDLError(
+                            f"Couldn't retrieve any matches for `{webpage_url}`")
 
-        return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
+            source = cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
+            output_sources.append(source)
+        return output_sources
 
     @staticmethod
     def parse_duration(duration: int):
@@ -506,14 +517,18 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             try:
-                source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
+                sources = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
                 await ctx.send(f'An error occurred while processing this request: {str(e)}')
             else:
-                song = Song(source)
-
-                await ctx.voice_state.songs.put(song)
-                await ctx.send(f'Enqueued {str(source)}')
+                for song in sources:
+                    song = Song(song)
+                    await ctx.voice_state.songs.put(song)
+                
+                if len(sources) == 1:
+                    await ctx.send(f'Enqueued {str(sources[0])}')
+                else:
+                    await ctx.send(f'Enqueued {len(sources)} songs')
 
     @commands.command(name='test')
     async def _test(self, ctx: commands.Context, testing=None):
