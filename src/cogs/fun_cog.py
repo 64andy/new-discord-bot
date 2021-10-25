@@ -14,7 +14,7 @@ class Oracle(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(name='8ball')
+    @commands.command(name='8ball', aliases=['🎱'])
     async def _8ball(self, ctx: commands.Context, question=None):
         """Provides a random magic 8ball response to a question."""
         answers=[
@@ -48,11 +48,11 @@ class Oracle(commands.Cog):
         if question == None:
             await ctx.send(random.choice(snark))
         else: 
-            await ctx.send(random.choice(answers))
+            await ctx.send(f'🎱 {random.choice(answers)}')
 
     @commands.command(name="coinflip", aliases=["coin","flip"])
     async def _coinflip(self, ctx: commands.Context):
         """Flips a coin, and observes the outcome."""
         sides=['Heads.','Tails.']
 
-        await ctx.send(random.choice(sides))
+        await ctx.send(f':coin: {random.choice(sides)}')
