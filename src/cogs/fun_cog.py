@@ -56,3 +56,10 @@ class Oracle(commands.Cog):
         sides=['Heads.','Tails.']
 
         await ctx.send(f':coin: {random.choice(sides)}')
+
+    @commands.command(name="choose", aliases=["decide","pick"])
+    async def _choose(self, ctx: commands.Context, *, options: str): 
+        """Randomly selects from a user-generated list of options."""
+        selection = random.choice(options.split(','))
+
+        await ctx.send(selection)
