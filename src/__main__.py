@@ -8,12 +8,13 @@ from .db.models import get_command_prefix
 
 # alexa play https://www.youtube.com/watch?v=dv1ypynSLzY
 
+
 async def get_prefix(bot: commands.Bot, message: discord.Message):
     prefix = get_command_prefix(message.guild)
     return commands.when_mentioned_or(prefix)(bot, message)
 
 bot = commands.Bot(
-    command_prefix=get_prefix,
+    command_prefix=['alexa', 'navi', 'alexa,', 'navi,'],
     description='[Andy stole this from Github]'
                 '(https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d)',
 )
@@ -30,8 +31,9 @@ async def on_ready():
 
 if __name__ == "__main__":
     load_dotenv()
-    
+
     bot.add_cog(Music(bot))
     bot.add_cog(Archive(bot))
     bot.add_cog(Oracle(bot))
+
     bot.run(os.environ['TOKEN'])

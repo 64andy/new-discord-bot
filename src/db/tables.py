@@ -15,8 +15,10 @@ class BotOptions(Base):
     __tablename__   = "Options"
     id              = Column(BigInteger, primary_key=True)
     game_name       = Column(String, comment="The Discord presence game name")
+    
     def __repr__(self):
         return f"BotOptions({self.id=}, {self.game_name=})"
+
 
 class GuildSettings(Base):
     __tablename__   = "Guild"

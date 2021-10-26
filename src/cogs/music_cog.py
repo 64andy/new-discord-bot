@@ -23,6 +23,7 @@ import functools
 import itertools
 import math
 import random
+from typing import List
 
 import discord
 import youtube_dl
@@ -59,7 +60,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
     }
 
     FFMPEG_OPTIONS = {
-        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+        # 'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn',
     }
 
@@ -91,7 +92,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return f'**{self.title}** by **{self.uploader}**'
 
     @classmethod
-    async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None) -> list:
+    async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None) -> 'List[YTDLSource]':
         loop = loop or asyncio.get_event_loop()
 
         partial = functools.partial(
@@ -100,10 +101,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         if data is None:
             raise YTDLError(f"Couldn't find anything that matches `{search}`")
-
-        # print(f"{list(data)=}")
-        # print(f"{data.get('entries')=}")
-        # print(f"{data.get('_type')=}")
 
         is_playlist = False
         process_info = []
@@ -144,7 +141,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
                     except IndexError:
                         raise YTDLError(
                             f"Couldn't retrieve any matches for `{webpage_url}`")
-
             source = cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
             output_sources.append(source)
         return output_sources
@@ -183,7 +179,7 @@ class Song:
             .add_field(name='Duration', value=self.source.duration)
             .add_field(name='Requested by', value=self.requester.mention)
             .add_field(name='Uploader', value=f'[{self.source.uploader}]({self.source.uploader_url})')
-            .set_thumbnail(url=self.source.thumbnail)
+            .set_image(url=self.source.thumbnail)
         )
 
         return embed
@@ -217,8 +213,8 @@ class VoiceState:
         self.bot = bot
         self._ctx = ctx
 
-        self.current = None
-        self.voice = None
+        self.current: Song = None
+        self.voice: discord.VoiceClient = None
         self.next = asyncio.Event()
         self.songs = SongQueue()
 
@@ -271,6 +267,7 @@ class VoiceState:
                     return
 
             self.current.source.volume = self._volume
+
             self.voice.play(self.current.source, after=self.play_next_song)
             await self.current.source.channel.send(embed=self.current.create_embed())
 
@@ -300,12 +297,12 @@ class Music(commands.Cog):
         self.bot = bot
         self.voice_states = {}
 
-    def get_voice_state(self, ctx: commands.Context):
+    def get_voice_state(self, ctx: commands.Context) -> VoiceState:
         state = self.voice_states.get(ctx.guild.id)
         if not state:
             state = VoiceState(self.bot, ctx)
             self.voice_states[ctx.guild.id] = state
-
+        
         return state
 
     def cog_unload(self):
@@ -329,7 +326,7 @@ class Music(commands.Cog):
     async def _join(self, ctx: commands.Context):
         """Joins a voice channel."""
 
-        destination = ctx.author.voice.channel
+        destination: discord.VoiceChannel = ctx.author.voice.channel
         if ctx.voice_state.voice:
             await ctx.voice_state.voice.move_to(destination)
             return
@@ -382,7 +379,6 @@ class Music(commands.Cog):
     @commands.command(name='now', aliases=['current', 'playing', 'np'])
     async def _now(self, ctx: commands.Context):
         """Displays the currently playing song."""
-        print("_now invoked")
         
         await ctx.send(embed=ctx.voice_state.current.create_embed())
 
@@ -425,7 +421,7 @@ class Music(commands.Cog):
             return await ctx.send('Not playing any music right now...')
 
         voter: discord.Member = ctx.message.author
-        if voter == ctx.voice_state.current.requester or voter.per:
+        if voter == ctx.voice_state.current.requester: #! or voter.permissions_in():
             await ctx.message.add_reaction('⏭')
             ctx.voice_state.skip()
 
@@ -449,7 +445,6 @@ class Music(commands.Cog):
         You can optionally specify the page to show. Each page contains 10 elements.
         """
 
-        print("_queue called")
         if len(ctx.voice_state.songs) == 0:
             return await ctx.send('Empty queue.')
 
@@ -511,7 +506,6 @@ class Music(commands.Cog):
         This command automatically searches from various sites if no URL is provided.
         A list of these sites can be found here: https://rg3.github.io/youtube-dl/supportedsites.html
         """
-
         if not ctx.voice_state.voice:
             await ctx.invoke(self._join)
 
@@ -535,13 +529,42 @@ class Music(commands.Cog):
         """quick shortcut to test playback"""
 
         if testing == None:
-            await self._play(ctx, search="https://www.youtube.com/watch?v=8xwt0uTKSC0")
+            await ctx.invoke(self._play, search="https://www.youtube.com/watch?v=8xwt0uTKSC0")
 
         if testing == "playlist":
-            await self._play(ctx, search="https://www.youtube.com/playlist?list=OLAK5uy_l1zOAMjxnu3OE8lbtqsItSwRR2LZjIQD0")
+            await ctx.invoke(self._play, search="https://www.youtube.com/playlist?list=OLAK5uy_l1zOAMjxnu3OE8lbtqsItSwRR2LZjIQD0")
+
+    @commands.command(name='witch')
+    async def _witch(self, ctx: commands.Context):
+        if not ctx.voice_state.voice:
+            await ctx.invoke(self._join)
+
+        ffmpeg_source = discord.FFmpegPCMAudio(
+            "cum.mp3",
+            **YTDLSource.FFMPEG_OPTIONS
+        )
+        data = {
+            'uploader': 'Me',
+            'uploader_url': "https://example.com",
+            'upload_date': ':)',
+            'title': "Fucker",
+            'thumbnail': "https://64andy.neocities.org/favicon.ico",
+            'url': "https://example.com",
+            'duration': 4444,
+        }
+        
+        source = YTDLSource(ctx, ffmpeg_source, data=data)
+
+
+        song = Song(source)
+        await ctx.voice_state.songs.put(song)
+
+        await ctx.send("Enqueued a banger")
 
     @_join.before_invoke
     @_play.before_invoke
+    @_test.before_invoke
+    @_witch.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
             raise commands.CommandError(
