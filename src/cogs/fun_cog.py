@@ -63,3 +63,14 @@ class Oracle(commands.Cog):
         selection = random.choice(options.split(','))
 
         await ctx.send(selection)
+
+    @commands.command(name="gay")
+    async def _gay(self, ctx: commands.Context):
+        """gay"""
+
+        embed=discord.Embed(title="BORN TO CRY", url="https://64andy.neocities.org/", description="WORLD IS A FEAR", color=0xdeadff)
+        embed.set_author(name="[DL] Locked", url="https://twitter.com/locked_dream", icon_url="https://circle-strafe-2001.neocities.org/misakool.png")
+        embed.set_thumbnail(url="https://circle-strafe-2001.neocities.org/spacecool.gif")
+        embed.add_field(name="恶魔 Kill Em All 2012", value="I am gamer girl", inline=False)
+        embed.set_footer(text="27,453,665 AUTOMATA RUNS")
+        await ctx.send(embed=embed)

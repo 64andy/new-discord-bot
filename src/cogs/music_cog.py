@@ -548,7 +548,7 @@ class Music(commands.Cog):
             'uploader_url': "https://example.com",
             'upload_date': ':)',
             'title': "Fucker",
-            'thumbnail': "https://64andy.neocities.org/favicon.ico",
+            'thumbnail': "https://circle-strafe-2001.neocities.org/don't%20ask.gif",
             'url': "https://example.com",
             'duration': 4444,
         }
