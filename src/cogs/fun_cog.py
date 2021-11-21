@@ -64,6 +64,67 @@ class Oracle(commands.Cog):
 
         await ctx.send(selection)
 
+    @commands.command(name="roll", aliases=["d20"])
+    async def _roll(self, ctx: commands.Context, *, rolling=None):
+        """Standard dice roll simulation."""
+
+        snark = [
+            'Oh, right, let me just roll an infinitely small point for you.',
+            'Are you that desperate for a max roll?',
+            'If you can\'t _not_ hit a crit, is it even a crit?',
+            'Why would you bother trying?',
+            'This is pointless, this die is pointless.',
+            'I\'m just gonna say you missed.',
+            'Why don\'t you roll for some _bitches?_',
+            'Try rolling an actual range for once.'
+        ]
+
+        invertsnark = [
+            'You can\'t roll a negative sided die, just invert it in your head!',
+            'Stop trying to roll negative numbers!',
+            'Inverted dice aren\'t real!',
+            '"Hmm, yes, today I think I\'ll roll negative numbers" words thought up by the utterly deranged.'
+        ]
+
+        stringsnark = [
+            'What am I supposed to be rolling here?',
+            'An integer asshat.',
+            'I only work in numbers'
+        ]
+
+        dice = []
+        randice = []
+        # Rolling can either be: Blank (default to one d6)
+        if rolling is None:
+            if ctx.invoked_with == 'd20':
+                dice = [20];
+            else: 
+                dice = [6];
+        else:
+        # Or, a list of numbers separated by pluses (plusses (plussy))
+            for num in rolling.split('+'):
+                num = num.strip()
+                try: int(num)
+                except ValueError:
+                    return await ctx.send(random.choice(stringsnark))
+                num = int(num)
+                if num < 0:
+                    return await ctx.send(random.choice(invertsnark))
+                if num == 0 or num == 1:
+                    return await ctx.send(random.choice(snark))
+                else: 
+                    dice.append(num)
+
+        if len(dice) == 1 and dice[0] == 2:
+            return await ctx.invoke(self._coinflip)
+
+        for num in dice:
+            randice.append(random.randint(1,int(num)))
+
+        print(f'roll results: {randice}')
+
+        await ctx.send(f':game_die:x{str(len(randice))} rolled {str(sum(randice))}')
+
     @commands.command(name="gay")
     async def _gay(self, ctx: commands.Context):
         """gay"""
