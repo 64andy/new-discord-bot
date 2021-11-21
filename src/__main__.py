@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from discord.ext import commands
 
 from .cogs import Music, Archive, Oracle
-from .db.models import get_command_prefix
+from .cogs.db.models import get_command_prefix
 
 # alexa play https://www.youtube.com/watch?v=dv1ypynSLzY
 

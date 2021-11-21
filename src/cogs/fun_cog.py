@@ -103,11 +103,10 @@ class Oracle(commands.Cog):
         else:
         # Or, a list of numbers separated by pluses (plusses (plussy))
             for num in rolling.split('+'):
-                num = num.strip()
-                try: int(num)
+                try:
+                    num = int(num)
                 except ValueError:
                     return await ctx.send(random.choice(stringsnark))
-                num = int(num)
                 if num < 0:
                     return await ctx.send(random.choice(invertsnark))
                 if num == 0 or num == 1:
@@ -119,11 +118,15 @@ class Oracle(commands.Cog):
             return await ctx.invoke(self._coinflip)
 
         for num in dice:
-            randice.append(random.randint(1,int(num)))
+            randice.append(random.randint(1, num))
 
-        print(f'roll results: {randice}')
+        if len(randice) == 1:
+            msg = f"(:game_die:) {randice[0]}"
+        else:
+            results_string = ' | '.join(map(str, randice))
+            msg = f"(:game_die:x{len(randice)}): {results_string} = {sum(randice)}"
+        await ctx.send(msg)
 
-        await ctx.send(f':game_die:x{str(len(randice))} rolled {str(sum(randice))}')
 
     @commands.command(name="gay")
     async def _gay(self, ctx: commands.Context):
