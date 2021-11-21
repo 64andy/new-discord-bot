@@ -121,10 +121,13 @@ class Oracle(commands.Cog):
             randice.append(random.randint(1, num))
 
         if len(randice) == 1:
-            msg = f"(:game_die:) {randice[0]}"
+            msg = f":game_die: {randice[0]}"
         else:
-            results_string = ' | '.join(map(str, randice))
-            msg = f"(:game_die:x{len(randice)}): {results_string} = {sum(randice)}"
+            n_dice, total = len(randice), sum(randice)
+            avg = total / n_dice
+            results_string = ' + '.join(f":game_die:{res}" for res in randice)
+            msg = (f"{results_string} = {total}.\n"
+                   f"{n_dice} dice, {avg:.2f} average")
         await ctx.send(msg)
 
 

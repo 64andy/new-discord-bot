@@ -35,15 +35,16 @@ class Archive(commands.Cog):
         if last_pin is None:
             return
         # Check 2: If no channel's set, ignore.
-        archive_channel_id = get_archive_channel(ctx.guild)
+        guild = channel.guild
+        archive_channel_id = get_archive_channel(guild)
         if archive_channel_id is None:
-            print(f"No archive channel set for {ctx.guild.name}")
+            print(f"No archive channel set for {guild.name}")
             return
         # Check 3: If the archive channel doesn't exist (been deleted), unset it.
         archive_channel = self.bot.get_channel(archive_channel_id)
         if archive_channel is None:
-            print(f"{ctx.guild.name}'s archive channel is missing. Unset it.")
-            forget_archive_channel(ctx.guild)
+            print(f"{guild.name}'s archive channel is missing. Unset it.")
+            forget_archive_channel(guild)
         
         latest_pin: discord.Message = (await channel.pins())[0]
         msg = f"""**Original Poster: {latest_pin.author.mention}**:\n{latest_pin.content}"""
