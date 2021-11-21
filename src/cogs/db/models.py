@@ -1,5 +1,5 @@
 import discord
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from . import Session
 from .tables import GuildSettings, BotOptions
@@ -34,21 +34,23 @@ def get_command_prefix(guild: discord.Guild) -> str:
     return guild.prefix
 
 
-def set_archive_channel(guild: discord.Guild, channel: discord.TextChannel):
+def set_archive_channel(guild: int, channel: int):
+    if isinstance(guild, discord.Guild):
+        guild = guild.id
+    if isinstance(channel, discord.TextChannel):
+        channel = channel.id
+    stmt = (
+        update(GuildSettings)
+        .where(GuildSettings.id == guild)
+        .values(archive_channel=channel)
+    )
     with Session() as session:
-        settings = get_guild_settings(guild)
-        settings.archive_channel = channel.id
+        session.execute(stmt)
         session.commit()
 
 
 def get_archive_channel(guild: discord.Guild) -> int:
-    with Session() as session:
-        settings = get_guild_settings(guild)
-        return settings.archive_channel
+    settings = get_guild_settings(guild)
+    return settings.archive_channel
 
 
-def forget_archive_channel(guild: discord.Guild) -> int:
-    with Session() as session:
-        settings = get_guild_settings(guild)
-        settings.archive_channel = None
-        session.commit()

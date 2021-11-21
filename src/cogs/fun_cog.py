@@ -8,16 +8,14 @@ import random
 from discord.ext.commands.context import Context
 
 
-
 class Oracle(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-
     @commands.command(name='8ball', aliases=['🎱'])
     async def _8ball(self, ctx: commands.Context, question=None):
         """Provides a random magic 8ball response to a question."""
-        answers=[
+        answers = [
             'It is certain.',
             'It is decidedly so.',
             'Without a doubt.',
@@ -46,19 +44,22 @@ class Oracle(commands.Cog):
             'Try again, dipshit.']
 
         if question == None:
-            await ctx.send(random.choice(snark))
-        else: 
-            await ctx.send(f'🎱 {random.choice(answers)}')
+            answer = random.choice(snark)
+        else:
+            index = hash(ctx.message.content) + ctx.message.author.id
+            index %= len(answers)
+            answer = answers[index]
+        await ctx.send(f'🎱 {answer}')
 
-    @commands.command(name="coinflip", aliases=["coin","flip"])
+    @commands.command(name="coinflip", aliases=["coin", "flip"])
     async def _coinflip(self, ctx: commands.Context):
         """Flips a coin, and observes the outcome."""
-        sides=['Heads.','Tails.']
+        sides = ['Heads.', 'Tails.']
 
         await ctx.send(f':coin: {random.choice(sides)}')
 
-    @commands.command(name="choose", aliases=["decide","pick"])
-    async def _choose(self, ctx: commands.Context, *, options: str): 
+    @commands.command(name="choose", aliases=["decide", "pick"])
+    async def _choose(self, ctx: commands.Context, *, options: str):
         """Randomly selects from a user-generated list of options."""
         selection = random.choice(options.split(','))
 
@@ -94,14 +95,14 @@ class Oracle(commands.Cog):
 
         dice = []
         randice = []
-        # Rolling can either be: Blank (default to one d6)
+        # Rolling can either be: Blank (default to one d6)...
         if rolling is None:
             if ctx.invoked_with == 'd20':
-                dice = [20];
-            else: 
-                dice = [6];
+                dice = [20]
+            else:
+                dice = [6]
         else:
-        # Or, a list of numbers separated by pluses (plusses (plussy))
+            # ... or, a list of numbers separated by pluses (plusses (plussy))
             for num in rolling.split('+'):
                 try:
                     num = int(num)
@@ -111,10 +112,10 @@ class Oracle(commands.Cog):
                     return await ctx.send(random.choice(invertsnark))
                 if num == 0 or num == 1:
                     return await ctx.send(random.choice(snark))
-                else: 
+                else:
                     dice.append(num)
-
-        if len(dice) == 1 and dice[0] == 2:
+        # Special case: A single 2-sided dice is a coin
+        if dice == [2]:
             return await ctx.invoke(self._coinflip)
 
         for num in dice:
@@ -130,14 +131,17 @@ class Oracle(commands.Cog):
                    f"{n_dice} dice, {avg:.2f} average")
         await ctx.send(msg)
 
-
     @commands.command(name="gay")
     async def _gay(self, ctx: commands.Context):
         """gay"""
 
-        embed=discord.Embed(title="BORN TO CRY", url="https://64andy.neocities.org/", description="WORLD IS A FEAR", color=0xdeadff)
-        embed.set_author(name="[DL] Locked", url="https://twitter.com/locked_dream", icon_url="https://circle-strafe-2001.neocities.org/misakool.png")
-        embed.set_thumbnail(url="https://circle-strafe-2001.neocities.org/spacecool.gif")
-        embed.add_field(name="恶魔 Kill Em All 2012", value="I am gamer girl", inline=False)
+        embed = discord.Embed(title="BORN TO CRY", url="https://64andy.neocities.org/",
+                              description="WORLD IS A FEAR", color=0xdeadff)
+        embed.set_author(name="[DL] Locked", url="https://twitter.com/locked_dream",
+                         icon_url="https://circle-strafe-2001.neocities.org/misakool.png")
+        embed.set_thumbnail(
+            url="https://circle-strafe-2001.neocities.org/spacecool.gif")
+        embed.add_field(name="恶魔 Kill Em All 2012",
+                        value="I am gamer girl", inline=False)
         embed.set_footer(text="27,453,665 AUTOMATA RUNS")
         await ctx.send(embed=embed)

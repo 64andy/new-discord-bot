@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands
+from typing import Optional
 
-from .db.models import get_archive_channel, set_archive_channel, forget_archive_channel
+from .db.models import get_archive_channel, set_archive_channel
 
 TICK_EMOJI = discord.PartialEmoji(name='✅')
 
@@ -12,24 +13,29 @@ class Archive(commands.Cog):
 
     @commands.command(name='set-archive')
     @commands.has_guild_permissions(manage_channels=True)
-    async def set_pin_channel(self, ctx: commands.Context, *, channel: discord.TextChannel):
+    async def set_pin_channel(self, ctx: commands.Context, *, channel: Optional[discord.TextChannel]):
         """
         Sets the given channel to the 'archive' channel.
         Any pinned messages will get put into it.
         """
-        set_archive_channel(ctx.guild, channel.id)
+        if channel is None:
+            channel = ctx.channel
+
+        set_archive_channel(ctx.guild, channel)
         await ctx.message.add_reaction(TICK_EMOJI)
-    
+        await ctx.send(f"Archive set. Now pins will show up in {channel.mention}.", delete_after=20)
+
     @commands.command(name='remove-archive')
     @commands.has_guild_permissions(manage_channels=True)
-    async def remove_pin_channel(self, ctx: commands.Context, *, channel: discord.TextChannel):
+    async def remove_pin_channel(self, ctx: commands.Context):
         """
         Unsets the pin channel
         """
-        forget_archive_channel(ctx.guild)
+        set_archive_channel(ctx.guild, None)
         await ctx.message.add_reaction(TICK_EMOJI)
+        await ctx.send("Archive forgotten.", delete_after=20)
 
-    @commands.Cog.listener(name="guild_channel_pins_update")
+    @commands.Cog.listener("on_guild_channel_pins_update")
     async def add_pin_to_archive(self, channel: discord.TextChannel, last_pin):
         # Check 1: If the action was an unpin, ignore.
         if last_pin is None:
@@ -45,12 +51,12 @@ class Archive(commands.Cog):
         if archive_channel is None:
             print(f"{guild.name}'s archive channel is missing. Unset it.")
             forget_archive_channel(guild)
-        
+
         latest_pin: discord.Message = (await channel.pins())[0]
         msg = f"""**Original Poster: {latest_pin.author.mention}**:\n{latest_pin.content}"""
         # Copy and reupload any files
-        files = [attachment.to_file(spoilers=attachment.is_spoiler())
-                    for attachment in latest_pin.attachments
-                ]
-        
+        files = [await attachment.to_file(spoiler=attachment.is_spoiler())
+                 for attachment in latest_pin.attachments
+                 ]
+
         await archive_channel.send(msg[:2000], files=files)
