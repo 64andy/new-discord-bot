@@ -59,11 +59,36 @@ class Oracle(commands.Cog):
         await ctx.send(f':coin: {random.choice(sides)}')
 
     @commands.command(name="choose", aliases=["decide", "pick"])
-    async def _choose(self, ctx: commands.Context, *, options: str):
+    async def _choose(self, ctx: commands.Context, *, options=str):
         """Randomly selects from a user-generated list of options."""
-        selection = random.choice(options.split(','))
+        if not options == None:
+            selection = random.choice(options.split(','))
+        else: 
+            selection = None
 
-        await ctx.send(selection)
+        snark = [
+            'Gee, quite the selection there.',
+            'Did you forget something?',
+            'Not much to really choose from.',
+            'Try again, and actually list some stuff this time.'
+        ]
+
+        forcedsnark = [
+            'Last time I had this many options there was a gun to my head.',
+            'Is that my only choice?',
+            'Hmm, what am I gonna pick? I wonder.',
+            'What happens if I don\'t?',
+            f'Out of all the options, I guess I\'d have to go with {str(options)}.',
+            f'"{str(options)}"? Is that my only option?',
+            'You\'re supposed to give me a comma-separated list.'
+        ]
+
+        if selection == None:
+            await ctx.send(random.choice(snark))
+        if len(options.split(',')) == 1:
+            await ctx.send(random.choice(forcedsnark))
+        else:
+            await ctx.send(selection)
 
     @commands.command(name="roll", aliases=["d20"])
     async def _roll(self, ctx: commands.Context, *, rolling=None):
