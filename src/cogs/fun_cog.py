@@ -59,7 +59,7 @@ class Oracle(commands.Cog):
         await ctx.send(f':coin: {random.choice(sides)}')
 
     @commands.command(name="choose", aliases=["decide", "pick"])
-    async def _choose(self, ctx: commands.Context, *, options=str):
+    async def _choose(self, ctx: commands.Context, *, options: str = None):
         """Randomly selects from a user-generated list of options."""
         if not options == None:
             selection = random.choice(options.split(','))
@@ -78,8 +78,8 @@ class Oracle(commands.Cog):
             'Is that my only choice?',
             'Hmm, what am I gonna pick? I wonder.',
             'What happens if I don\'t?',
-            f'Out of all the options, I guess I\'d have to go with {str(options)}.',
-            f'"{str(options)}"? Is that my only option?',
+            f'Out of all the options, I guess I\'d have to go with {options}.',
+            f'"{options}"? Is that my only option?',
             'You\'re supposed to give me a comma-separated list.'
         ]
 
