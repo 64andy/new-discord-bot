@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from typing import Dict
+from typing import Optional
 
 import math
 import random
@@ -13,7 +13,7 @@ class Oracle(commands.Cog):
         self.bot = bot
 
     @commands.command(name='8ball', aliases=['🎱'])
-    async def _8ball(self, ctx: commands.Context, question=None):
+    async def _8ball(self, ctx: commands.Context, question: Optional[str]):
         """Provides a random magic 8ball response to a question."""
         answers = [
             'It is certain.',
@@ -59,12 +59,12 @@ class Oracle(commands.Cog):
         await ctx.send(f':coin: {random.choice(sides)}')
 
     @commands.command(name="choose", aliases=["decide", "pick"])
-    async def _choose(self, ctx: commands.Context, *, options: str = None):
+    async def _choose(self, ctx: commands.Context, *, options: Optional[str]):
         """Randomly selects from a user-generated list of options."""
-        if not options == None:
-            selection = random.choice(options.split(','))
-        else: 
+        if options is None:
             selection = None
+        else:
+            selection = random.choice(options.split(','))
 
         snark = [
             'Gee, quite the selection there.',
@@ -91,7 +91,7 @@ class Oracle(commands.Cog):
             await ctx.send(selection)
 
     @commands.command(name="roll", aliases=["d20"])
-    async def _roll(self, ctx: commands.Context, *, rolling=None):
+    async def _roll(self, ctx: commands.Context, *, rolling: Optional[str]):
         """Standard dice roll simulation."""
 
         snark = [

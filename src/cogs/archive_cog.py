@@ -50,7 +50,7 @@ class Archive(commands.Cog):
         archive_channel = self.bot.get_channel(archive_channel_id)
         if archive_channel is None:
             print(f"{guild.name}'s archive channel is missing. Unset it.")
-            forget_archive_channel(guild)
+            set_archive_channel(guild, None)
 
         latest_pin: discord.Message = (await channel.pins())[0]
         msg = f"""**Original Poster: {latest_pin.author.mention}**:\n{latest_pin.content}"""
