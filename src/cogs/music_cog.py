@@ -134,14 +134,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
     @classmethod
     async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None) -> 'List[YTDLSource]':
-        print('creating loop')
         loop = loop or asyncio.get_event_loop()
-        print('got loop')
         partial = functools.partial(
             cls.ytdl.extract_info, search, download=False, process=True,
             extra_info={'noplaylist': True})
         data = await loop.run_in_executor(None, partial)
-        print('bloop bloop')
         if data is None:
             raise YTDLError(f"Couldn't find anything that matches `{search}`")
 
@@ -260,7 +257,6 @@ class VoiceState:
                 # the player will disconnect due to performance
                 # reasons.
                 try:
-                    print("Trying to get...")
                     async with timeout(180):  # 3 minutes
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
@@ -269,11 +265,8 @@ class VoiceState:
                         print("This bot needs her beauty sleep! (timed out due to inactivity)")
                         await self._ctx.send(content='I\'m sleepy!', delete_after=30)
                     return
-            print("... successful")
             self.current.data.volume = self._volume
-            print("getting source")
             source = await YTDLSource.create_source(self._ctx, self.current.data.data['webpage_url'])
-            print('we got this far')
             self.voice.play(source, after=self.play_next_song)
             await self.current.data.channel.send(embed=self.current.create_embed())
 
