@@ -67,7 +67,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
     ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
     def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
-        super().__init__(source, volume)
+        if source is not None:
+            super().__init__(source, volume)
 
         self.requester = ctx.author
         self.channel = ctx.channel
@@ -92,17 +93,26 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return f'**{self.title}** by **{self.uploader}**'
 
     @classmethod
-    async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None) -> 'List[YTDLSource]':
-        loop = loop or asyncio.get_event_loop()
+    async def get_info(cls, ctx, search: str, *, loop: asyncio.BaseEventLoop = None) -> 'List[YTDLSource]':
+        """
+        Returns a list of the raw songs info in a search.
+        If only one song is found it's a 1-len list
+        If it's a playlist, take a guess.
 
+        Note: DO NOT RELY ON THIS FOR YOUR STREAM SOURCE
+        These are husks, these 'YTDLSource's have no player
+        This is because YT download links expire REAL quick
+        When you wanna play, use the proper `create_source`
+        """
+        loop = loop or asyncio.get_event_loop()
+        print('is this just real fucking slow?')
         partial = functools.partial(
             cls.ytdl.extract_info, search, download=False, process=True)
         data = await loop.run_in_executor(None, partial)
-
+        print('it seems so')
         if data is None:
             raise YTDLError(f"Couldn't find anything that matches `{search}`")
 
-        is_playlist = False
         process_info = []
 
         if 'entries' not in data:
@@ -110,7 +120,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
             process_info.append(data)
         elif '_type' in data and data['_type'] == 'playlist':
             # Is a playlist
-            is_playlist = True
             for entry in data['entries']:
                 if entry:
                     process_info.append(entry)
@@ -120,30 +129,24 @@ class YTDLSource(discord.PCMVolumeTransformer):
         if not process_info:
             raise YTDLError(
                 f"Couldn't find anything that matches `{search}`")
+        process_info = [YTDLSource(ctx, source=None, data=info) for info in process_info]
+        return process_info
 
-        output_sources = []
-        for video in process_info:
-            webpage_url = video['webpage_url']
-            partial = functools.partial(
-                cls.ytdl.extract_info, webpage_url, download=False)
-            processed_info = await loop.run_in_executor(None, partial)
+    @classmethod
+    async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None) -> 'List[YTDLSource]':
+        print('creating loop')
+        loop = loop or asyncio.get_event_loop()
+        print('got loop')
+        partial = functools.partial(
+            cls.ytdl.extract_info, search, download=False, process=True,
+            extra_info={'noplaylist': True})
+        data = await loop.run_in_executor(None, partial)
+        print('bloop bloop')
+        if data is None:
+            raise YTDLError(f"Couldn't find anything that matches `{search}`")
 
-            if processed_info is None:
-                raise YTDLError(f"Couldn't fetch `{webpage_url}`")
-
-            if 'entries' not in processed_info:
-                info = processed_info
-            else:
-                info = None
-                while info is None:
-                    try:
-                        info = processed_info['entries'].pop(0)
-                    except IndexError:
-                        raise YTDLError(
-                            f"Couldn't retrieve any matches for `{webpage_url}`")
-            source = cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
-            output_sources.append(source)
-        return output_sources
+        source = cls(ctx, discord.FFmpegPCMAudio(data['url'], **cls.FFMPEG_OPTIONS), data=data)
+        return source
 
     @staticmethod
     def parse_duration(duration: int):
@@ -165,21 +168,21 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 class Song:
-    __slots__ = ('source', 'requester')
+    __slots__ = ('data', 'requester')
 
-    def __init__(self, source: YTDLSource):
-        self.source = source
-        self.requester = source.requester
+    def __init__(self, data: YTDLSource, requester: discord.User):
+        self.data = data
+        self.requester = requester
 
     def create_embed(self):
         embed = (
             discord.Embed(title='Now playing',
-                          description=f'[{self.source.title}]({self.source.url})',
+                          description=f'[{self.data.title}]({self.data.url})',
                           color=discord.Colour(0x38B92A))
-            .add_field(name='Duration', value=self.source.duration)
+            .add_field(name='Duration', value=self.data.duration)
             .add_field(name='Requested by', value=self.requester.mention)
-            .add_field(name='Uploader', value=f'[{self.source.uploader}]({self.source.uploader_url})')
-            .set_image(url=self.source.thumbnail)
+            .add_field(name='Uploader', value=f'[{self.data.uploader}]({self.data.uploader_url})')
+            .set_image(url=self.data.thumbnail)
         )
 
         return embed
@@ -257,6 +260,7 @@ class VoiceState:
                 # the player will disconnect due to performance
                 # reasons.
                 try:
+                    print("Trying to get...")
                     async with timeout(180):  # 3 minutes
                         self.current = await self.songs.get()
                 except asyncio.TimeoutError:
@@ -265,11 +269,13 @@ class VoiceState:
                         print("This bot needs her beauty sleep! (timed out due to inactivity)")
                         await self._ctx.send(content='I\'m sleepy!', delete_after=30)
                     return
-
-            self.current.source.volume = self._volume
-
-            self.voice.play(self.current.source, after=self.play_next_song)
-            await self.current.source.channel.send(embed=self.current.create_embed())
+            print("... successful")
+            self.current.data.volume = self._volume
+            print("getting source")
+            source = await YTDLSource.create_source(self._ctx, self.current.data.data['webpage_url'])
+            print('we got this far')
+            self.voice.play(source, after=self.play_next_song)
+            await self.current.data.channel.send(embed=self.current.create_embed())
 
             await self.next.wait()
 
@@ -511,12 +517,13 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             try:
-                sources = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
+                sources = await YTDLSource.get_info(ctx, search, loop=self.bot.loop)
             except YTDLError as e:
                 await ctx.send(f'An error occurred while processing this request: {str(e)}')
             else:
                 for song in sources:
-                    song = Song(song)
+                    print('putting', song.data.get('title'))
+                    song = Song(song, requester=ctx.author)
                     await ctx.voice_state.songs.put(song)
                 
                 if len(sources) == 1:
