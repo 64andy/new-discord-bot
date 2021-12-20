@@ -13,7 +13,7 @@ Use this as an example or a base for your own bot and extend it as you want. If 
 Requirements:
 
 Python 3.5+
-pip install -U discord.py pynacl youtube-dl
+pip install -U discord.py pynacl yt-dlp
 
 You also need FFmpeg in your PATH environment variable or the FFmpeg.exe binary in your bot's directory on Windows.
 """
@@ -26,12 +26,12 @@ import random
 from typing import List
 
 import discord
-import youtube_dl
+import yt_dlp
 from async_timeout import timeout
 from discord.ext import commands
 
 # Silence useless bug reports messages
-youtube_dl.utils.bug_reports_message = lambda: ''
+yt_dlp.utils.bug_reports_message = lambda: ''
 
 
 class VoiceError(Exception):
@@ -64,7 +64,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         'options': '-vn',
     }
 
-    ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
+    ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
 
     def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
         super().__init__(source, volume)
