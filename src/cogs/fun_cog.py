@@ -170,3 +170,11 @@ class Oracle(commands.Cog):
                         value="I am gamer girl", inline=False)
         embed.set_footer(text="27,453,665 AUTOMATA RUNS")
         await ctx.send(embed=embed)
+
+    @commands.command(name="about")
+    async def _about(self, ctx: commands.Context):
+        """Defines the primary purpose of this bot."""
+
+        msg = "https://cdn.discordapp.com/attachments/295826646748102657/950218645273989190/FNLjoAsVgAYA0pN.png"
+        await ctx.send(msg)
+        
