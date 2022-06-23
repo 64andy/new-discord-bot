@@ -60,8 +60,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
     }
 
     FFMPEG_OPTIONS = {
-        # 'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
         'options': '-vn',
+        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'
     }
 
     ytdl = yt_dlp.YoutubeDL(YTDL_OPTIONS)
@@ -175,7 +175,7 @@ class Song:
         embed = (
             discord.Embed(title='Now playing',
                           description=f'[{self.data.title}]({self.data.url})',
-                          color=discord.Colour(0x38B92A))
+                          color=discord.Colour(0x1FA852))
             .add_field(name='Duration', value=self.data.duration)
             .add_field(name='Requested by', value=self.requester.mention)
             .add_field(name='Uploader', value=f'[{self.data.uploader}]({self.data.uploader_url})')
