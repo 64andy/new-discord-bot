@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from typing import List
-
 from sys import stderr
 
 from discord import FFmpegPCMAudio, Embed, Colour
@@ -33,24 +32,22 @@ class LocalAudioSource(AbstractAudio):
         return FFmpegPCMAudio(self.filepath, **FFMPEG_OPTIONS)
 
     def create_embed(self) -> Embed:
-        return (
-            Embed(title='Now playing',
-                          description=self.name,
-                          color=Colour.blue()
-            )
-        )
-    
+        return Embed(title='Now playing',
+                     description=self.name,
+                     color=Colour.blue()
+                     )
+
     def __str__(self):
         return self.name
 
     @property
     def name(self) -> str:
         return self.filepath
-    
+
     @property
     def url(self) -> None:
         return None
-    
+
     @property
     def length(self) -> None:
         return None
