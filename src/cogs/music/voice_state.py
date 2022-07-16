@@ -1,6 +1,7 @@
 import asyncio
 import itertools
 import random
+from typing import Optional
 
 import discord
 from async_timeout import timeout
@@ -40,8 +41,8 @@ class VoiceState:
         self.bot = bot
         self._ctx = ctx
 
-        self.current: AbstractAudio = None
-        self.voice: discord.VoiceClient = None
+        self.current: Optional[AbstractAudio] = None
+        self.voice: Optional[discord.VoiceClient] = None
         self.next = asyncio.Event()
         self.songs = SongQueue()
 

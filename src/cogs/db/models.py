@@ -1,3 +1,4 @@
+from typing import Optional
 import discord
 from sqlalchemy import select, update
 
@@ -34,7 +35,7 @@ def get_command_prefix(guild: discord.Guild) -> str:
     return guild.prefix
 
 
-def set_archive_channel(guild: int, channel: int):
+def set_archive_channel(guild: int, channel: Optional[int]):
     if isinstance(guild, discord.Guild):
         guild = guild.id
     if isinstance(channel, discord.TextChannel):

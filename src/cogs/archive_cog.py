@@ -1,3 +1,4 @@
+from datetime import datetime
 import discord
 from discord.ext import commands
 from typing import Optional
@@ -36,7 +37,7 @@ class Archive(commands.Cog):
         await ctx.send("Archive forgotten.", delete_after=20)
 
     @commands.Cog.listener("on_guild_channel_pins_update")
-    async def add_pin_to_archive(self, channel: discord.TextChannel, last_pin):
+    async def add_pin_to_archive(self, channel: discord.TextChannel, last_pin: Optional[datetime.datetime]):
         # Check 1: If the action was an unpin, ignore.
         if last_pin is None:
             return

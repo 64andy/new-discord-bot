@@ -30,6 +30,7 @@ class GuildSettings(Base):
     
     
 if __name__ == "__main__":
+    from . import engine
     print("sqlalchemy version:", v)
     print(getcwd())
     if input(

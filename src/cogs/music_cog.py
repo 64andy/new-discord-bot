@@ -30,6 +30,7 @@ from .music.ytdl_source import YTDLSource, YTDLError
 from .music.local_audio_source import LocalAudioSource
 from .music.voice_state import VoiceState, VoiceError
 
+EMPTY_QUEUE_MSG = 'Queue is empty.'
 
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -155,7 +156,7 @@ class Music(commands.Cog):
         """
 
         if len(ctx.voice_state.songs) == 0:
-            return await ctx.send('Empty queue.')
+            return await ctx.send(EMPTY_QUEUE_MSG)
 
         items_per_page = 10
         pages = math.ceil(len(ctx.voice_state.songs) / items_per_page)
@@ -182,7 +183,7 @@ class Music(commands.Cog):
         """Shuffles the queue."""
 
         if len(ctx.voice_state.songs) == 0:
-            return await ctx.send('Empty queue.')
+            return await ctx.send(EMPTY_QUEUE_MSG)
 
         ctx.voice_state.songs.shuffle()
         await ctx.message.add_reaction('✅')
@@ -192,7 +193,7 @@ class Music(commands.Cog):
         """Removes a song from the queue at a given index."""
 
         if len(ctx.voice_state.songs) == 0:
-            return await ctx.send('Empty queue.')
+            return await ctx.send(EMPTY_QUEUE_MSG)
 
         ctx.voice_state.songs.remove(index - 1)
         await ctx.message.add_reaction('✅')
