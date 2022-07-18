@@ -3,7 +3,11 @@ import discord
 from sqlalchemy import select, update
 
 from . import Session
-from .tables import GuildSettings, BotOptions
+from .tables import GuildSettings, BotOptions, Base
+
+
+def init_database():
+    Base.metadata.create_all()
 
 
 def get_guild_settings(guild: discord.Guild) -> GuildSettings:

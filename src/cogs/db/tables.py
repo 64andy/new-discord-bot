@@ -1,11 +1,10 @@
-from sqlalchemy import Column, String, BigInteger, __version__ as v
-from sqlalchemy.ext.declarative import declarative_base
-from os import getcwd
+import sqlalchemy as _sql
+from sqlalchemy.ext.declarative import declarative_base as __declarative_base
 
-MAX_PREFIX_LEN  = 20
+MAX_COMMAND_PREFIX_LEN  = 20
 
 
-Base = declarative_base()
+Base = __declarative_base()
 
 
 class BotOptions(Base):
@@ -13,27 +12,17 @@ class BotOptions(Base):
     This table should only have a single row... I should just use json yeah
     """
     __tablename__   = "Options"
-    id              = Column(BigInteger, primary_key=True)
-    game_name       = Column(String, comment="The Discord presence game name")
+    id: int         = _sql.Column(_sql.BigInteger, primary_key=True)
+    game_name: str  = _sql.Column(_sql.String, comment="The Discord presence game name")
     
     def __repr__(self):
         return f"BotOptions({self.id=}, {self.game_name=})"
 
 
 class GuildSettings(Base):
-    __tablename__   = "Guild"
-    id              = Column(BigInteger, primary_key=True, comment="ID of server")
-    prefix          = Column(String(MAX_PREFIX_LEN), default="alexa")
-    archive_channel = Column(BigInteger, comment="ID of channel")
+    __tablename__        = "Guild"
+    id: int              = _sql.Column(_sql.BigInteger, primary_key=True, comment="ID of server")
+    prefix: str          = _sql.Column(_sql.String(MAX_COMMAND_PREFIX_LEN), default="alexa")
+    archive_channel: int = _sql.Column(_sql.BigInteger, comment="ID of channel")
     def __repr__(self):
         return f"GuildSettings({self.id=}, {self.prefix=}, {self.archive_channel=})"
-    
-    
-if __name__ == "__main__":
-    from . import engine
-    print("sqlalchemy version:", v)
-    print(getcwd())
-    if input(
-    "Y/N: Update schema? >").lower() == "y":
-        Base.metadata.create_all(engine)
-        input("Completed. Hit enter to exit")
