@@ -3,19 +3,13 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from discord.ext import commands
-from discord import AudioSource, Embed
+from discord import AudioSource, Embed, User
 
-"""
-An abstraction layer that provides data about a given audio, and allows lazy loading of audio sources.
-"""
+
 class AbstractAudio(ABC):
     """
-    Builds 
+    An abstraction layer that provides data about a given audio, and allows lazy loading of audio sources.
     """
-    @classmethod
-    @abstractmethod
-    async def from_ctx(cls, ctx: commands.Context, search: str) -> 'List[AbstractAudio]':
-        ...
 
     @abstractmethod
     async def generate_source(self) -> AudioSource:
@@ -24,7 +18,7 @@ class AbstractAudio(ABC):
     @abstractmethod
     def create_embed(self) -> Embed:
         ...
-    
+
     def short_audio_info(self) -> str:
         name = self.name
         url = self.url
@@ -32,31 +26,26 @@ class AbstractAudio(ABC):
             info_str = f"**{name}**"
         else:
             info_str = f"[**{name}**]({url})"
-        
-        return f"{info_str} - {self.parse_duration()}" 
+
+        return f"{info_str} - {self.parse_duration()}"
 
     @property
     @abstractmethod
     def name(self) -> str:
         ...
-    
+
     @property
     @abstractmethod
     def url(self) -> Optional[str]:
         ...
-    
+
     @property
     @abstractmethod
     def length(self) -> Optional[int]:
         ...
 
-    @property
-    @abstractmethod
-    def context(self) -> commands.Context:
-        ...
-
     def parse_duration(self) -> str:
-        total_length = self.length
+        total_length = int(self.length)
         if total_length is None:
             return "unkn length"
         minutes, seconds = divmod(total_length, 60)
@@ -65,12 +54,12 @@ class AbstractAudio(ABC):
 
         total_length = []
         if days > 0:
-            total_length.append(f'{days}d')
+            total_length.append(f"{days}d")
         if hours > 0:
-            total_length.append(f'{hours}h')
+            total_length.append(f"{hours}h")
         if minutes > 0:
-            total_length.append(f'{minutes}m')
+            total_length.append(f"{minutes}m")
         if seconds > 0:
-            total_length.append(f'{seconds}s')
+            total_length.append(f"{seconds}s")
 
-        return ' '.join(total_length)
+        return " ".join(total_length)

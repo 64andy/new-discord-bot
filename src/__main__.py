@@ -1,3 +1,4 @@
+import asyncio
 import os
 import discord
 from dotenv import load_dotenv
@@ -13,7 +14,15 @@ async def get_prefix(bot: commands.Bot, message: discord.Message):
     prefix = get_command_prefix(message.guild)
     return commands.when_mentioned_or(prefix)(bot, message)
 
-bot = commands.Bot(
+intents = discord.Intents.default()
+intents.message_content = True
+
+class MyBot(commands.Bot):
+    async def setup_hook(self):
+        await self.tree.sync()
+
+bot = MyBot(
+    intents=intents,
     command_prefix=['alexa', 'navi', 'alexa,', 'navi,'],
     description='[Andy stole this from Github]'
                 '(https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d)',
@@ -29,16 +38,20 @@ async def on_ready():
         f'ID: {bot.user.id}'
     )
 
+async def add_all_cogs(bot):
+    """Discord.py 2.0 makes adding cogs an async operation"""
+    await bot.add_cog(Music(bot, music_folder=os.environ["LOCAL_MUSIC_FOLDER"]))
+    await bot.add_cog(Archive(bot))
+    await bot.add_cog(Oracle(bot))
+
+
 if __name__ == "__main__":
     # Load the .env vars
     load_dotenv()
 
     # Add the cogs
-    bot.add_cog(Music(bot))
-    bot.add_cog(Archive(bot))
-    bot.add_cog(Oracle(bot))
-    
+    asyncio.run(add_all_cogs(bot))
     # Load the database
     init_database()
-
+    
     bot.run(os.environ['TOKEN'])

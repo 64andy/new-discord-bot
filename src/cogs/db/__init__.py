@@ -3,4 +3,4 @@ from sqlalchemy.orm import sessionmaker as __sessionmaker
 
 
 engine = __create_engine("sqlite:///my_lovely.db")
-Session =__sessionmaker(engine)
+Session = __sessionmaker(engine)

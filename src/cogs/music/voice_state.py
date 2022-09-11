@@ -37,9 +37,9 @@ class SongQueue(asyncio.Queue):
 
 
 class VoiceState:
-    def __init__(self, bot: commands.Bot, ctx: commands.Context):
+    def __init__(self, bot: commands.Bot, channel: discord.TextChannel):
         self.bot = bot
-        self._ctx = ctx
+        self.channel = channel
 
         self.current: Optional[AbstractAudio] = None
         self.voice: Optional[discord.VoiceClient] = None
@@ -47,7 +47,6 @@ class VoiceState:
         self.songs = SongQueue()
 
         self._loop = False
-        self.skip_votes = set()
 
         self.audio_player = bot.loop.create_task(self.audio_player_task())
 
@@ -81,13 +80,13 @@ class VoiceState:
                         self.current: AbstractAudio = await self.songs.get()
                 except asyncio.TimeoutError:
                     if self.voice:
-                        await self._ctx.invoke(self.bot.get_command('leave'))
+                        await self.stop()
                         print("This bot needs her beauty sleep! (timed out due to inactivity)")
-                        await self._ctx.send(content="I'm sleepy!", delete_after=30)
+                        await self.channel.send(content="I'm sleepy!", delete_after=30)
                     return  # Disconnect
             source = await self.current.generate_source()
             self.voice.play(source, after=self.play_next_song)
-            await self.current.context.channel.send(embed=self.current.create_embed())
+            await self.channel.send(embed=self.current.create_embed())
 
             await self.next.wait()
 
@@ -98,8 +97,6 @@ class VoiceState:
         self.next.set()
 
     def skip(self):
-        self.skip_votes.clear()
-
         if self.is_playing:
             self.voice.stop()
 

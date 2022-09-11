@@ -2,12 +2,12 @@ from typing import Optional
 import discord
 from sqlalchemy import select, update
 
-from . import Session
+from . import Session, engine
 from .tables import GuildSettings, BotOptions, Base
 
 
 def init_database():
-    Base.metadata.create_all()
+    Base.metadata.create_all(engine)
 
 
 def get_guild_settings(guild: discord.Guild) -> GuildSettings:
@@ -57,5 +57,3 @@ def set_archive_channel(guild: int, channel: Optional[int]):
 def get_archive_channel(guild: discord.Guild) -> int:
     settings = get_guild_settings(guild)
     return settings.archive_channel
-
-
