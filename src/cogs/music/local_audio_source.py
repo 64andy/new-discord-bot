@@ -26,6 +26,8 @@ class LocalAudioSource(AbstractAudio):
         self.requester = added_by
 
     async def generate_source(self) -> FFmpegPCMAudio:
+        print("Hey bitch, why can't you make a fucking SOURCE")
+        print("It's right there, see, they wrote", self.song_data.filepath, "with the fucking magic marker")
         return FFmpegPCMAudio(self.song_data.filepath, **FFMPEG_OPTIONS)
 
     def create_embed(self) -> Embed:

@@ -64,7 +64,7 @@ class Music(commands.Cog):
         return True
 
     async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        logging.getLogger('discord').exception(error)
+        logging.exception(error)
         await ctx.send(f'An error occurred: {str(error)}')
 
 

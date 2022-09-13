@@ -1,5 +1,6 @@
 import asyncio
 import itertools
+import logging
 import random
 from typing import Optional
 
@@ -8,7 +9,6 @@ from async_timeout import timeout
 from discord.ext import commands
 
 from .abstract_audio import AbstractAudio
-
 
 class VoiceError(commands.CommandInvokeError):
     pass
@@ -66,29 +66,35 @@ class VoiceState:
         return self.voice and self.current
 
     async def audio_player_task(self) -> None:
-        while True:
-            self.next.clear()
+        try:
+            while True:
+                self.next.clear()
 
-            if not self.loop:
-                # Try to get the next song within 3 minutes.
-                # If no song will be added to the queue in time,
-                # the player will disconnect due to performance
-                # reasons.
-                try:
-                    async with timeout(180):  # 3 minutes
-                        print("Trying to get new song")
-                        self.current: AbstractAudio = await self.songs.get()
-                except asyncio.TimeoutError:
-                    if self.voice:
-                        await self.stop()
-                        print("This bot needs her beauty sleep! (timed out due to inactivity)")
-                        await self.channel.send(content="I'm sleepy!", delete_after=30)
-                    return  # Disconnect
-            source = await self.current.generate_source()
-            self.voice.play(source, after=self.play_next_song)
-            await self.channel.send(embed=self.current.create_embed())
+                if not self.loop:
+                    # Try to get the next song within 3 minutes.
+                    # If no song will be added to the queue in time,
+                    # the player will disconnect due to performance
+                    # reasons.
+                    try:
+                        async with timeout(180):  # 3 minutes
+                            print("Trying to get new song")
+                            self.current: AbstractAudio = await self.songs.get()
+                    except asyncio.TimeoutError:
+                        if self.voice:
+                            print("This bot needs her beauty sleep! (timed out due to inactivity)")
+                            await self.channel.send(content="I'm sleepy!", delete_after=30)
+                            break   # Leave channel
+                print("Got song ", self.current)
+                source = await self.current.generate_source()
+                self.voice.play(source, after=self.play_next_song)
+                await self.channel.send(embed=self.current.create_embed())
+                await self.next.wait()
+        except Exception as e:
+            logging.exception(e)
+            await self.channel.send("Error:", e)
+        finally:
+            await self.stop()
 
-            await self.next.wait()
 
     def play_next_song(self, error=None):
         if error:

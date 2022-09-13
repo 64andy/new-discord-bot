@@ -1,11 +1,13 @@
 """
 A class for searching local files
 """
+from itertools import islice
+import logging
 import os
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from pprint import pprint
+import pprint
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import discord
@@ -25,7 +27,7 @@ class SongData:
     track_num: int
     artist: str
     title: str
-    filename: str
+    filepath: str
     length: float
 
     @staticmethod
@@ -41,7 +43,7 @@ class SongData:
             artist=song_data.resolve("artist").value or "<None>",
             length=song_data.resolve("#length").value,
             title=title,
-            filename=song_data.filename,
+            filepath=song_data.filename,
         )
 
 
@@ -56,13 +58,16 @@ def _get_other_autocomplete_fields(interaction: discord.Interaction) -> Dict[str
 
 
 def _get_all_songs(filepath: str) -> List[SongData]:
-    all_songs: List[SongData] = []
+    all_songs = []
     for (dirname, _, filenames) in os.walk(filepath):
         for fname in filenames:
             full_path = os.path.join(dirname, fname)
             song_data: Id3File = load_file(full_path, err=None)
             if song_data is not None:
                 all_songs.append(SongData.from_music_tag(song_data))
+
+    # Sort by track number (ignoring non-integer values)
+    all_songs.sort(key=lambda song: isinstance(song.track_num, int) and song.track_num)
     return all_songs
 
 
@@ -105,8 +110,6 @@ class LocalAudioLibrary:
 
         for (attr_name, query) in kwargs.items():
             if attr_name and query:
-                print(f"{query=}, {attr_name=}")
-                print("Old length:", len(best))
                 # Don't accept anything longer than the query string (searching "Mezzanine" shouldn't match "Me")
                 best = [
                     song
@@ -123,7 +126,7 @@ class LocalAudioLibrary:
                 )
                 print(f"{attr_name!r} search. {len(best)} result(s):")
                 best = [_merge(entry) for entry in best]
-                pprint(best[:10])
+                pprint.pprint(best[:10])
                 print("===")
 
         return [song for (song, _conf) in best]
@@ -143,7 +146,6 @@ class LocalAudioLibrary:
                         getattr(self, attr_name + "_list"), k=DISCORD_AUTOCOMPLETE_LIMIT
                     )
                 ]
-                print("Defaulting with", defaults)
                 return defaults
             # Cut down the possibilities, depending on the other entered fields
             possible_songs = self.all_songs
@@ -151,18 +153,18 @@ class LocalAudioLibrary:
                 possible_songs = filter(
                     lambda s: getattr(s, name) == value, possible_songs
                 )
-            all_suggestions = {
+            possible_songs = sorted(possible_songs, key=lambda s: isinstance(s, str) and s.track_num)
+            # Remove duplicates, keeping order
+            all_suggestions = list(dict.fromkeys(
                 getattr(s, attr_name)
                 for s in possible_songs
                 if len(query) <= len(getattr(s, attr_name))
-            }
+            ))
 
             # * IF: No value for this field has been entered, show what CAN be entered
             if not query.strip():
                 best = [(song, None) for song in all_suggestions]
             else:
-                print(f"All suggestions (All {len(all_suggestions)} of 'em):")
-                print(all_suggestions)
                 best = process.extractBests(
                     query,
                     all_suggestions,
@@ -170,11 +172,13 @@ class LocalAudioLibrary:
                     score_cutoff=MIN_SIMILARITY,
                     limit=25,
                 )
-            print(f"Final call: {len(best)} possibilities")
-            print(best)
+
+            print(f"Total of {len(best)} {attr_name!r} autocomplete suggestions with {query!r}.\n{pprint.pformat(best[:6])}")
+            # Remove the confidence value, and only take 25 values at most
+            best = (song for (song, _conf) in islice(best, DISCORD_AUTOCOMPLETE_LIMIT))
             return [
                 discord.app_commands.Choice(name=name[:100], value=name[:100])
-                for (name, _conf) in best[:DISCORD_AUTOCOMPLETE_LIMIT]
+                for name in best
             ]
 
         return inner
