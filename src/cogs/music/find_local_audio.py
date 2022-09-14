@@ -1,8 +1,10 @@
 """
 A class for searching local files
 """
+from collections import defaultdict
 from itertools import islice
 import logging
+from math import inf
 import os
 import random
 from dataclasses import dataclass
@@ -19,7 +21,7 @@ MIN_SIMILARITY = 85  # Fuzzy search needs 85% confidence in the similarity
 DISCORD_AUTOCOMPLETE_LIMIT = 25  # Discord autocomplete only allows 25 suggestions max
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(frozen=True)
 class SongData:
     """Class for storing information about a local audio file"""
 
@@ -45,14 +47,34 @@ class SongData:
             title=title,
             filepath=song_data.filename,
         )
+    
+    def __hash__(self) -> int:
+        return hash(self.filepath)
+    
+    def __eq__(self, other: object) -> bool:
+        """True if they both point to the same file"""
+        return isinstance(other, self.__class__) and self.filepath == other.filepath
+    
+    def __lt__(self, other: 'SongData') -> bool:
+        """
+        Used for sorting songs by their track number 
+
+        If a song has no track number, it'll be sorted to the end of the list
+        If songs share a track number it'll sort by the title alphabetically
+        """
+        self_track_num = self.track_num if isinstance(self.track_num, int) else inf
+        other_track_num = other.track_num if isinstance(other.track_num, int) else inf
+
+        return (self_track_num, self.title.lower()) < (other_track_num, other.title.lower())
+
+
 
 
 def _get_other_autocomplete_fields(interaction: discord.Interaction) -> Dict[str, str]:
     other_fields = {}
     for field in interaction.data["options"]:
-        if (
-            not field.get("focused") and field["value"]
-        ):  # If this isn't the current field, and something's been typed into the field
+        # For every populated autocomplete field that ISN'T this one...
+        if not field.get("focused") and field["value"]: 
             other_fields[field["name"]] = field["value"]
     return other_fields
 
@@ -66,8 +88,6 @@ def _get_all_songs(filepath: str) -> List[SongData]:
             if song_data is not None:
                 all_songs.append(SongData.from_music_tag(song_data))
 
-    # Sort by track number (ignoring non-integer values)
-    all_songs.sort(key=lambda song: isinstance(song.track_num, int) and song.track_num)
     return all_songs
 
 
@@ -94,15 +114,22 @@ class LocalAudioLibrary:
 
     def __init__(self, audio_directory: str):
         self.all_songs = _get_all_songs(audio_directory)
-        self.title_list = list({s.title for s in self.all_songs})
-        self.artist_list = list({s.artist for s in self.all_songs})
-        self.album_list = list({s.album for s in self.all_songs})
+        self.field_to_song = {
+            "title": defaultdict(list),
+            "artist": defaultdict(list),
+            "album": defaultdict(list),
+            }
+        for song in self.all_songs:
+            self.field_to_song["title"][song.title].append(song)
+            self.field_to_song["artist"][song.artist].append(song)
+            self.field_to_song["album"][song.album].append(song)
 
     def find_possible_songs(self, **kwargs) -> List[SongData]:
         best = self.all_songs
 
         def _merge(sd: Union[SongData, Tuple[SongData, int]]):
             total_conf = 0
+            # 
             while isinstance(sd, tuple):
                 total_conf += sd[1]
                 sd = sd[0]
@@ -137,23 +164,22 @@ class LocalAudioLibrary:
         ) -> List[discord.app_commands.Choice]:
             other_autocomplete_fields = _get_other_autocomplete_fields(interaction)
 
-            # * IF: No other fields have been entered
+            # * IF: No fields have been entered
             if not query.strip() and not other_autocomplete_fields:
                 # If the user hasn't typed anything, return random choices
-                defaults = [
+                
+                all_options = list(self.field_to_song[attr_name])
+                return [
                     discord.app_commands.Choice(name=option[:100], value=option[:100])
-                    for option in random.choices(
-                        getattr(self, attr_name + "_list"), k=DISCORD_AUTOCOMPLETE_LIMIT
-                    )
+                    for option in random.choices(all_options, k=DISCORD_AUTOCOMPLETE_LIMIT)
                 ]
-                return defaults
-            # Cut down the possibilities, depending on the other entered fields
-            possible_songs = self.all_songs
+            # Only show songs that match the other fields
+            possible_songs = set()  ??????????
             for (name, value) in other_autocomplete_fields.items():
                 possible_songs = filter(
                     lambda s: getattr(s, name) == value, possible_songs
                 )
-            possible_songs = sorted(possible_songs, key=lambda s: isinstance(s, str) and s.track_num)
+            possible_songs = sorted(possible_songs)
             # Remove duplicates, keeping order
             all_suggestions = list(dict.fromkeys(
                 getattr(s, attr_name)
