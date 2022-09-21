@@ -10,7 +10,7 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 import pprint
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, Hashable, Iterable, List, Optional, Sequence, Set, Tuple, Union
 
 import discord
 from music_tag import load_file
@@ -90,6 +90,18 @@ def _get_all_songs(filepath: str) -> List[SongData]:
 
     return all_songs
 
+def get_x_unique_values(items: Iterable, x: int) -> Iterable:
+    """Returns upto `x` non-duplicate items from `items`"""
+    seen = set()
+    for val in items:
+        if len(seen) >= x:
+            break
+        if val in seen:
+            continue
+        seen.add(val)
+        yield val
+
+
 
 def _tag_processor(
     attr_name,
@@ -114,17 +126,18 @@ class LocalAudioLibrary:
 
     def __init__(self, audio_directory: str):
         self.all_songs = _get_all_songs(audio_directory)
-        self.field_to_song = {
-            "title": defaultdict(list),
-            "artist": defaultdict(list),
-            "album": defaultdict(list),
-            }
+        self.field_to_song: Dict[str, Dict[str, Set[SongData]]] = {
+            "title": defaultdict(set),
+            "artist": defaultdict(set),
+            "album": defaultdict(set),
+        }
         for song in self.all_songs:
-            self.field_to_song["title"][song.title].append(song)
-            self.field_to_song["artist"][song.artist].append(song)
-            self.field_to_song["album"][song.album].append(song)
+            self.field_to_song["title"][song.title].add(song)
+            self.field_to_song["artist"][song.artist].add(song)
+            self.field_to_song["album"][song.album].add(song)
 
     def find_possible_songs(self, **kwargs) -> List[SongData]:
+        # !!! MARKED FOR DELETION
         best = self.all_songs
 
         def _merge(sd: Union[SongData, Tuple[SongData, int]]):
@@ -158,54 +171,76 @@ class LocalAudioLibrary:
 
         return [song for (song, _conf) in best]
 
+    def _autocomplete_give_random_values(self, attr_name) -> List[str]:
+        all_options = list(self.field_to_song[attr_name].keys())
+        random.shuffle(all_options)
+        return all_options
+    
+    def _autocomplete_give_closest_match(self, query: str, attr_name: str, other_autocomplete_fields: Dict[str, str]) -> Iterable[SongData]:
+        """Uses fuzzy search to find the closest match"""
+        possible_songs = self._autocomplete_filtered_from_other_fields(other_autocomplete_fields)
+        get_tag = _tag_processor(attr_name)
+        # If the `query` is longer than the searched field, don't consider it.
+        # This is so searching for, e.g., "Mezzanine" doesn't cause "Me" to show up
+        possible_songs = filter(lambda s: len(query) <= len(get_tag(s)), possible_songs)
+        possible_songs = process.extractBests(
+            query=query,
+            choices=possible_songs,
+            processor=get_tag,
+            scorer=fuzz.partial_ratio,  # Scorer to be improved
+            score_cutoff=MIN_SIMILARITY
+        )
+
+        # Sort by highest confidence, then by string length similarity
+        # e.g. Searching for "ain't" will put "Ain't" at the top,
+        #      and "Two Out Of Three Ain't Bad" lower
+        possible_songs.sort(key=lambda kv: (kv[1], len(get_tag(kv[0])) - len(query)))
+        # Return without the confidence value
+        return (song for (song, _conf) in possible_songs)
+
+    def _autocomplete_filtered_from_other_fields(self, other_autocomplete_fields: Dict[str, str]) -> Set[SongData]:
+        # If no other autocomplete fields exist, just search everything
+        if len(other_autocomplete_fields) == 0:
+            return self.all_songs
+        # Using an iterator, so our first value can "populate" the set
+        it = iter(other_autocomplete_fields.items())
+        (name, value) = next(it)
+        possible_songs = self.field_to_song[name][value]
+        # ... then use the remaining fields to filter
+        for (name, value) in it:
+            possible_songs.intersection_update(self.field_to_song[name][value])
+        return possible_songs
+
     def get_autocomplete_suggestions(self, attr_name):
         async def inner(
             interaction: discord.Interaction, query: Optional[str]
-        ) -> List[discord.app_commands.Choice]:
+        ) -> Iterable[discord.app_commands.Choice]:
             other_autocomplete_fields = _get_other_autocomplete_fields(interaction)
-
-            # * IF: No fields have been entered
+            # * IF: not a single field's been entered, just return random values
             if not query.strip() and not other_autocomplete_fields:
-                # If the user hasn't typed anything, return random choices
-                
-                all_options = list(self.field_to_song[attr_name])
-                return [
-                    discord.app_commands.Choice(name=option[:100], value=option[:100])
-                    for option in random.choices(all_options, k=DISCORD_AUTOCOMPLETE_LIMIT)
-                ]
-            # Only show songs that match the other fields
-            possible_songs = set()  ??????????
-            for (name, value) in other_autocomplete_fields.items():
-                possible_songs = filter(
-                    lambda s: getattr(s, name) == value, possible_songs
-                )
-            possible_songs = sorted(possible_songs)
-            # Remove duplicates, keeping order
-            all_suggestions = list(dict.fromkeys(
-                getattr(s, attr_name)
-                for s in possible_songs
-                if len(query) <= len(getattr(s, attr_name))
-            ))
-
-            # * IF: No value for this field has been entered, show what CAN be entered
-            if not query.strip():
-                best = [(song, None) for song in all_suggestions]
+                possible_songs = self._autocomplete_give_random_values(attr_name)
+                return (discord.app_commands.Choice(name=name, value=name)
+                        for name in possible_songs[:DISCORD_AUTOCOMPLETE_LIMIT])
+            # * IF: someone's typed into the field, return the most likely values
+            elif query.strip():
+                possible_songs = self._autocomplete_give_closest_match(query, attr_name, other_autocomplete_fields)
             else:
-                best = process.extractBests(
-                    query,
-                    all_suggestions,
-                    scorer=fuzz.partial_ratio,  # Scorer to be improved
-                    score_cutoff=MIN_SIMILARITY,
-                    limit=25,
-                )
-
-            print(f"Total of {len(best)} {attr_name!r} autocomplete suggestions with {query!r}.\n{pprint.pformat(best[:6])}")
-            # Remove the confidence value, and only take 25 values at most
-            best = (song for (song, _conf) in islice(best, DISCORD_AUTOCOMPLETE_LIMIT))
-            return [
-                discord.app_commands.Choice(name=name[:100], value=name[:100])
-                for name in best
-            ]
+                possible_songs = self._autocomplete_filtered_from_other_fields(other_autocomplete_fields)
+                # * If album's been set, return in track-number order
+                # * (So the `title` field shows 1st, 2nd, 3rd... songs in order)
+                if attr_name == "title" and other_autocomplete_fields.get('album'):
+                    possible_songs = sorted(possible_songs)
+                # * Otherwise, sort by the current field
+                else:
+                    possible_songs = sorted(possible_songs, key=lambda s: getattr(s, attr_name))
+            # We only wanna see data from the current field
+            possible_songs = map(lambda s: getattr(s, attr_name), possible_songs)
+            # Return 25 (the API limit) non-duplicating values
+            # (Non-duplicating, because every song in an album adds the same album name)
+            return (
+                discord.app_commands.Choice(name=name, value=name)
+                for name in get_x_unique_values(possible_songs, DISCORD_AUTOCOMPLETE_LIMIT)
+            )
 
         return inner
 
