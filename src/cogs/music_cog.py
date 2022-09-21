@@ -42,6 +42,10 @@ class Music(commands.Cog):
             album=self.local_library.get_autocomplete_suggestions('album'),
             artist=self.local_library.get_autocomplete_suggestions('artist')
         )(self._play_local_song)
+        app_commands.autocomplete(
+            album=self.local_library.get_autocomplete_suggestions('album'),
+            artist=self.local_library.get_autocomplete_suggestions('artist')
+        )(self._play_local_album)
 
     def get_voice_state(self, channel: discord.TextChannel) -> VoiceState:
         """Gets the voice state of this"""
@@ -294,6 +298,25 @@ class Music(commands.Cog):
         await voice_state.songs.put(song)
         await interaction.response.send_message(f'Enqueued song: {song}')
         
+    @app_commands.command(name="play-local-album")
+    async def _play_local_album(self, interaction: discord.Interaction, *,
+        album: str,
+        artist: Optional[str]=""
+        ):
+        voice_state = self.get_voice_state(interaction.channel)
+        await self.join_voice_channel(voice_state, interaction.user)
+
+        print(f"{album=}, {artist=}")
+        possibilities = self.local_library.find_possible_songs(album=album, artist=artist)
+        if len(possibilities) == 0:
+            return await interaction.response.send_message("Error: Couldn't find any songs from your search")
+        possibilities.sort()
+        
+        print(f'putting {len(possibilities)} songs')
+        for audio_file in possibilities:
+            song = LocalAudioSource(audio_file, added_by=interaction.user)
+            await voice_state.songs.put(song)
+        await interaction.response.send_message(f'Enqueued {len(possibilities)} songs:')
 
     @_join.before_invoke
     @_play.before_invoke

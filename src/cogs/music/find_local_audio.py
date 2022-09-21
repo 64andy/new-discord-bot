@@ -137,7 +137,6 @@ class LocalAudioLibrary:
             self.field_to_song["album"][song.album].add(song)
 
     def find_possible_songs(self, **kwargs) -> List[SongData]:
-        # !!! MARKED FOR DELETION
         best = self.all_songs
 
         def _merge(sd: Union[SongData, Tuple[SongData, int]]):
