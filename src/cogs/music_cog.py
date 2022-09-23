@@ -41,11 +41,8 @@ class Music(commands.Cog):
             title=self.local_library.get_autocomplete_suggestions('title'),
             album=self.local_library.get_autocomplete_suggestions('album'),
             artist=self.local_library.get_autocomplete_suggestions('artist')
-        )(self._play_local_song)
-        app_commands.autocomplete(
-            album=self.local_library.get_autocomplete_suggestions('album'),
-            artist=self.local_library.get_autocomplete_suggestions('artist')
-        )(self._play_local_album)
+        )(self._play_local)
+
 
     def get_voice_state(self, channel: discord.TextChannel) -> VoiceState:
         """Gets the voice state of this"""
@@ -278,46 +275,55 @@ class Music(commands.Cog):
             await ctx.invoke(self._play, search="https://www.youtube.com/playlist?list=OLAK5uy_l1zOAMjxnu3OE8lbtqsItSwRR2LZjIQD0")
 
     
-    @app_commands.command(name="play-local-song")
-    async def _play_local_song(self, interaction: discord.Interaction, *,
-        title: str,
+    @app_commands.command(name="play-local")
+    @app_commands.describe(
+        title="An individual song's name. If set, only the specified song will play.",
+        album="The album. The entire album is queued... UNLESS `title` is set, then it's used for filtering.",
+        artist="The song artist. Only used for filtering.",
+    )
+    async def _play_local(self, interaction: discord.Interaction, *,
+        title: Optional[str]="",
         album: Optional[str]="",
         artist: Optional[str]=""
         ):
+        """Plays a local song if `title` is set, or a whole album if it isn't."""
+        # `title` or `album` need to be set
+        if not title and not album:
+            if not artist:
+                await interaction.response.send_message(
+                    "❌ No fields were entered.\n"
+                    "At minimum, the `title` or `album` fields must be entered.")
+            else:
+                await interaction.response.send_message(
+                    "Sorry, you can't search **only** by artist.\n"
+                    "At minimum, the `title` or `album` fields must be entered.")
+            return
+
         voice_state = self.get_voice_state(interaction.channel)
         await self.join_voice_channel(voice_state, interaction.user)
 
-        print(f"{title=}, {album=}, {artist=}")
         possibilities = self.local_library.find_possible_songs(title=title, album=album, artist=artist)
         if len(possibilities) == 0:
             return await interaction.response.send_message("Error: Couldn't find any songs from your search")
-        audio_file = possibilities[0]
-
-        song = LocalAudioSource(audio_file, added_by=interaction.user)
-        print('putting the local song:', song.name)
-        await voice_state.songs.put(song)
-        await interaction.response.send_message(f'Enqueued song: {song}')
         
-    @app_commands.command(name="play-local-album")
-    async def _play_local_album(self, interaction: discord.Interaction, *,
-        album: str,
-        artist: Optional[str]=""
-        ):
-        voice_state = self.get_voice_state(interaction.channel)
-        await self.join_voice_channel(voice_state, interaction.user)
-
-        print(f"{album=}, {artist=}")
-        possibilities = self.local_library.find_possible_songs(album=album, artist=artist)
-        if len(possibilities) == 0:
-            return await interaction.response.send_message("Error: Couldn't find any songs from your search")
-        possibilities.sort()
-        
-        print(f'putting {len(possibilities)} songs')
-        for audio_file in possibilities:
+        if title:
+            audio_file = possibilities[0]
+            print('putting the local song:', song.name)
             song = LocalAudioSource(audio_file, added_by=interaction.user)
+            MSG = f'Enqueued song: {song}'
+            if len(possibilities) > 1:
+                MSG = f'⚠ {len(possibilities)} possible song matches. Use the album & artist fields to filter.\n' + MSG
             await voice_state.songs.put(song)
-        await interaction.response.send_message(f'Enqueued {len(possibilities)} songs:')
-
+            await interaction.response.send_message(MSG)
+        elif album:
+            n_songs = len(possibilities)
+            print('putting', n_songs, "local song(s)")
+            for audio_file in possibilities:
+                song = LocalAudioSource(audio_file, added_by=interaction.user)
+                await voice_state.songs.put(song)
+            await interaction.response.send_message(f'Enqueued {n_songs} songs from **{audio_file.album}**')
+        
+    
     @_join.before_invoke
     @_play.before_invoke
     @_test.before_invoke
