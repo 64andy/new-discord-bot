@@ -40,7 +40,7 @@ async def on_ready():
 
 async def add_all_cogs(bot):
     """Discord.py 2.0 makes adding cogs an async operation"""
-    await bot.add_cog(Music(bot, music_folder=os.environ["LOCAL_MUSIC_FOLDER"]))
+    await bot.add_cog(Music(bot, music_folder=os.environ.get("LOCAL_MUSIC_FOLDER")))
     await bot.add_cog(Archive(bot))
     await bot.add_cog(Oracle(bot))
 

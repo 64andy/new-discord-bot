@@ -14,8 +14,6 @@ You also need FFmpeg in your PATH environment variable or the FFmpeg.exe binary 
 
 import logging
 import math
-from os.path import exists
-import traceback
 from typing import Dict, List, Optional
 
 import discord
@@ -34,14 +32,19 @@ class Music(commands.Cog):
     def __init__(self, bot: commands.Bot, music_folder: str):
         self.bot = bot
         self.voice_states: Dict[int, VoiceState] = {}
-        self.local_library = LocalAudioLibrary(music_folder)
+        if music_folder is None:
+            logging.warn(".env variable `LOCAL_MUSIC_FOLDER` not set. Playing local music is disabled.")
+            self.local_library = None
+        else:
+            self.local_library = LocalAudioLibrary(music_folder)
         # Manually attach the autocomplete callbacks, because decorators
         # are processed at compile time, and local_library doesn't yet
-        app_commands.autocomplete(
-            title=self.local_library.get_autocomplete_suggestions('title'),
-            album=self.local_library.get_autocomplete_suggestions('album'),
-            artist=self.local_library.get_autocomplete_suggestions('artist')
-        )(self._play_local)
+        if self.local_library is not None:
+            app_commands.autocomplete(
+                title=self.local_library.get_autocomplete_suggestions('title'),
+                album=self.local_library.get_autocomplete_suggestions('album'),
+                artist=self.local_library.get_autocomplete_suggestions('artist')
+            )(self._play_local)
 
 
     def get_voice_state(self, channel: discord.TextChannel) -> VoiceState:
@@ -287,7 +290,10 @@ class Music(commands.Cog):
         artist: Optional[str]=""
         ):
         """Plays a local song if `title` is set, or a whole album if it isn't."""
-        # `title` or `album` need to be set
+        # Has local music been set?
+        if self.local_library is None:
+            return await interaction.response.send_message("❌ Can't play local songs, as the bot runner hasn't set a music folder. Try the normal play command")
+        # `title` or `album` need to be set       
         if not title and not album:
             if not artist:
                 await interaction.response.send_message(
@@ -308,8 +314,8 @@ class Music(commands.Cog):
         
         if title:
             audio_file = possibilities[0]
-            print('putting the local song:', song.name)
             song = LocalAudioSource(audio_file, added_by=interaction.user)
+            print('putting the local song:', song.name)
             MSG = f'Enqueued song: {song}'
             if len(possibilities) > 1:
                 MSG = f'⚠ {len(possibilities)} possible song matches. Use the album & artist fields to filter.\n' + MSG
