@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from typing import Optional
+from typing import List, Optional
 
 import math
 import random
@@ -90,10 +90,19 @@ class Oracle(commands.Cog):
         else:
             await ctx.send(selection)
 
-    @commands.command(name="roll", aliases=["d20"])
-    async def _roll(self, ctx: commands.Context, *, rolling: Optional[str]):
-        """Standard dice roll simulation."""
+    @commands.command(name="d20")
+    async def _d20(self, ctx: commands.Context):
+        """Rolls a single D20"""
+        dice = [20]
+        return await self._roll_given_dice(ctx, dice)
 
+    @commands.command(name="roll")
+    async def _roll(self, ctx: commands.Context, *, dice_to_roll: Optional[str]):
+        """
+        Rolls the given number of plus-separated dice.
+        (e.g. `roll 6+6+20` rolls two 6-sided dice & one 20-sided).
+        If no dice are given, it defaults to one 6-sided.
+        """
         snark = [
             'Oh, right, let me just roll an infinitely small point for you.',
             'Are you that desperate for a max roll?',
@@ -118,40 +127,48 @@ class Oracle(commands.Cog):
             'I only work in numbers'
         ]
 
-        dice = []
-        randice = []
-        # Rolling can either be: Blank (default to one d6)...
-        if rolling is None:
-            if ctx.invoked_with == 'd20':
-                dice = [20]
+        dice: List[int] = []
+        # If no string is given, default to a D6
+        if dice_to_roll is None:
+            dice = [6]
+            return await self._roll_given_dice(ctx, dice)
+        # Otherwise it's '+' separated list of numbers
+        for num in dice_to_roll.split('+'):
+            try:
+                num = int(num)
+            except ValueError:
+                # Can't parse as int ('cheese' isn't a number)
+                return await ctx.send(random.choice(stringsnark))
+            if num < 0:
+                # Can't roll a negative-sided dice
+                return await ctx.send(random.choice(invertsnark))
+            if num == 0 or num == 1:
+                # No such thing as a 0-sided/1-sided dice
+                return await ctx.send(random.choice(snark))
             else:
-                dice = [6]
-        else:
-            # ... or, a list of numbers separated by pluses (plusses (plussy))
-            for num in rolling.split('+'):
-                try:
-                    num = int(num)
-                except ValueError:
-                    return await ctx.send(random.choice(stringsnark))
-                if num < 0:
-                    return await ctx.send(random.choice(invertsnark))
-                if num == 0 or num == 1:
-                    return await ctx.send(random.choice(snark))
-                else:
-                    dice.append(num)
+                dice.append(num)
         # Special case: A single 2-sided dice is a coin
         if dice == [2]:
             return await ctx.invoke(self._coinflip)
 
-        for num in dice:
-            randice.append(random.randint(1, num))
+        return await self._roll_given_dice(ctx, dice)
 
-        if len(randice) == 1:
-            msg = f":game_die: {randice[0]}"
+    async def _roll_given_dice(self, ctx: commands.Context, dice: List[int]):
+        """
+        Handles the rolling of dice & the result messages to send
+        """
+        # Roll each dice
+        dice_results = [random.randint(1, num) for num in dice]
+        if len(dice_results) == 1:
+            # '<dice> 14'
+            msg = f":game_die: {dice_results[0]}"
         else:
-            n_dice, total = len(randice), sum(randice)
+            # "<dice>1<dice>2<dice>3<dice>4 = 10.
+            #  4 dice, 10.00 avg"
+            n_dice, total = len(dice_results), sum(dice_results)
             avg = total / n_dice
-            results_string = ' + '.join(f":game_die:{res}" for res in randice)
+            results_string = ' + '.join(
+                f":game_die:{res}" for res in dice_results)
             msg = (f"{results_string} = {total}.\n"
                    f"{n_dice} dice, {avg:.2f} average")
         await ctx.send(msg)
@@ -177,4 +194,3 @@ class Oracle(commands.Cog):
 
         msg = "https://cdn.discordapp.com/attachments/295826646748102657/950218645273989190/FNLjoAsVgAYA0pN.png"
         await ctx.send(msg)
-        
