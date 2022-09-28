@@ -244,6 +244,3 @@ class LocalAudioLibrary:
         return inner
 
 
-if __name__ == "__main__":
-    lib = LocalAudioLibrary("G:/Andrew/Music")
-    lib.find_possible_songs(artist="Can", title="Bring Me Coffee Or Tea")

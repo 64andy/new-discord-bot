@@ -322,6 +322,7 @@ class Music(commands.Cog):
             await voice_state.songs.put(song)
             await interaction.response.send_message(MSG)
         elif album:
+            possibilities.sort()
             n_songs = len(possibilities)
             print('putting', n_songs, "local song(s)")
             for audio_file in possibilities:
