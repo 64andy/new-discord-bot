@@ -84,9 +84,13 @@ def _get_all_songs(filepath: str) -> List[SongData]:
     for (dirname, _, filenames) in os.walk(filepath):
         for fname in filenames:
             full_path = os.path.join(dirname, fname)
-            song_data: Id3File = load_file(full_path, err=None)
-            if song_data is not None:
-                all_songs.append(SongData.from_music_tag(song_data))
+            try:
+                song_data: Id3File = load_file(full_path, err=None)
+                if song_data is not None:
+                    all_songs.append(SongData.from_music_tag(song_data))
+            except NotImplementedError as e:
+                logging.warn(f"Can't open {full_path}: {e!r}")
+                
 
     return all_songs
 
