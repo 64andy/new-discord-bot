@@ -10,6 +10,8 @@ from discord.ext import commands
 
 from .abstract_audio import AbstractAudio
 
+logger = logging.getLogger(__name__)
+
 class VoiceError(commands.CommandInvokeError):
     pass
 
@@ -90,7 +92,7 @@ class VoiceState:
                 await self.channel.send(embed=self.current.create_embed())
                 await self.next.wait()
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             await self.channel.send("Error:", e)
         finally:
             await self.stop()

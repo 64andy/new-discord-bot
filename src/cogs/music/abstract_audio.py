@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
-from discord.ext import commands
-from discord import AudioSource, Embed, User
+from typing import Optional
+from discord import AudioSource, Embed
 
 
 class AbstractAudio(ABC):

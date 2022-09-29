@@ -2,7 +2,6 @@
 A class for searching local files
 """
 from collections import defaultdict
-from itertools import islice
 import logging
 from math import inf
 import os
@@ -10,16 +9,18 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 import pprint
-from typing import Callable, Dict, Hashable, Iterable, List, Optional, Sequence, Set, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import discord
 from music_tag import load_file
 from music_tag.id3 import Id3File
 from thefuzz import fuzz, process
 
-MIN_SIMILARITY = 85  # Fuzzy search needs 85% confidence in the similarity
+MIN_SIMILARITY = 75  # Fuzzy search needs 75% confidence in the similarity
 DISCORD_AUTOCOMPLETE_LIMIT = 25  # Discord autocomplete only allows 25 suggestions max
 
+
+logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class SongData:
@@ -89,7 +90,7 @@ def _get_all_songs(filepath: str) -> List[SongData]:
                 if song_data is not None:
                     all_songs.append(SongData.from_music_tag(song_data))
             except NotImplementedError as e:
-                logging.warn(f"Can't open {full_path}: {e!r}")
+                logger.warning(f"Can't open {full_path}: {e!r}")
                 
 
     return all_songs
@@ -191,7 +192,8 @@ class LocalAudioLibrary:
             choices=possible_songs,
             processor=get_tag,
             scorer=fuzz.partial_ratio,  # Scorer to be improved
-            score_cutoff=MIN_SIMILARITY
+            score_cutoff=MIN_SIMILARITY,
+            limit=None
         )
 
         # Sort by highest confidence, then by string length similarity
@@ -248,3 +250,22 @@ class LocalAudioLibrary:
         return inner
 
 
+if __name__ == "__main__":
+    import pickle
+    local_library = LocalAudioLibrary("src")
+    with open("all_songs.pkl", "rb") as file:
+        all_songs: List[SongData] = pickle.load(file)
+    new_songs = [SongData(
+            album=song.album,
+            track_num=song.track_num,
+            artist=song.artist,
+            title=song.title,
+            filepath=song.filename,
+            length=song.length
+        )
+    for song in all_songs
+    ]
+    
+    local_library.all_songs = new_songs
+    x = local_library._autocomplete_give_closest_match(query="Mouth", attr_name="album", other_autocomplete_fields={})
+    print(x)

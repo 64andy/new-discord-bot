@@ -28,6 +28,8 @@ from .music.ytdl_source import YTDLError, YTDLSource
 
 EMPTY_QUEUE_MSG = 'Queue is empty.'
 
+logger = logging.getLogger(__name__)
+
 class Music(commands.Cog):
     def __init__(self, bot: commands.Bot, music_folder: str):
         self.bot = bot
@@ -68,7 +70,7 @@ class Music(commands.Cog):
         return True
 
     async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        logging.exception(error)
+        logger.exception(error)
         await ctx.send(f'An error occurred: {str(error)}')
 
 
