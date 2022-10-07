@@ -66,6 +66,7 @@ class VoiceState:
         return self.voice and self.current
 
     async def audio_player_task(self) -> None:
+        self.current = None
         try:
             while True:
                 self.next.clear()
@@ -108,6 +109,7 @@ class VoiceState:
 
     async def stop(self):
         self.songs.clear()
+        self.current = None
         if self.voice:
             await self.voice.disconnect()
             self.voice = None
