@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from typing import List
 from sys import stderr
 
 from discord import FFmpegPCMAudio, Embed, Colour, User
