@@ -53,7 +53,7 @@ class Music(commands.Cog):
         """Gets the voice state of this"""
         server_id = channel.guild.id
         state = self.voice_states.get(server_id)
-        if not state:
+        if not state or state.is_destroyed:
             state = VoiceState(self.bot, channel)
             self.voice_states[server_id] = state
 

@@ -84,9 +84,9 @@ class VoiceState:
                     # the bot will disconnect.
                     async with timeout(180):  # 3 minutes
                         print("Trying to get new song")
-                        self.current: AbstractAudio = await self.songs.get()
+                        self.current = await self.songs.get()
 
-                print("Got song ", self.current)
+                print("Got song", self.current)
                 source = await self.current.generate_source()
                 self.voice.play(source, after=self.play_next_song)
                 await self.channel.send(embed=self.current.create_embed())
