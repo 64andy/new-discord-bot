@@ -53,6 +53,7 @@ class VoiceState:
         self.audio_player = bot.loop.create_task(self.audio_player_task())
 
     def __del__(self):
+        print("Deleting VoiceState in channel", self.channel.name)
         self.audio_player.cancel()
 
     @property
@@ -64,8 +65,12 @@ class VoiceState:
         self._loop = value
 
     @property
-    def is_playing(self):
+    def is_playing(self) -> bool:
         return self.voice and self.current
+    
+    @property
+    def is_destroyed(self):
+        return self.voice is None
 
     async def audio_player_task(self) -> None:
         self.current = None
@@ -76,25 +81,24 @@ class VoiceState:
                 if not self.loop:
                     # Try to get the next song within 3 minutes.
                     # If no song will be added to the queue in time,
-                    # the player will disconnect due to performance
-                    # reasons.
-                    try:
-                        async with timeout(180):  # 3 minutes
-                            print("Trying to get new song")
-                            self.current: AbstractAudio = await self.songs.get()
-                    except asyncio.TimeoutError:
-                        if self.voice:
-                            print("This bot needs her beauty sleep! (timed out due to inactivity)")
-                            await self.channel.send(content="I'm sleepy!", delete_after=30)
-                            break   # Leave channel
+                    # the bot will disconnect.
+                    async with timeout(180):  # 3 minutes
+                        print("Trying to get new song")
+                        self.current: AbstractAudio = await self.songs.get()
+
                 print("Got song ", self.current)
                 source = await self.current.generate_source()
                 self.voice.play(source, after=self.play_next_song)
                 await self.channel.send(embed=self.current.create_embed())
                 await self.next.wait()
+        except asyncio.TimeoutError:
+            if self.voice:
+                print("This bot needs her beauty sleep! (timed out due to inactivity)")
+                await self.channel.send(content="I'm sleepy!", delete_after=30)
+                return   # Leave channel
         except Exception as e:
             logger.exception(e)
-            await self.channel.send("Error:", e)
+            await self.channel.send(f"Error: {e}")
         finally:
             await self.stop()
 

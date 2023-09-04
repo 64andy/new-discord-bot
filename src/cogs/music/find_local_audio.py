@@ -251,6 +251,7 @@ class LocalAudioLibrary:
 
 
 if __name__ == "__main__":
+    # Debugging script, consider removing
     import pickle
     local_library = LocalAudioLibrary("src")
     with open("all_songs.pkl", "rb") as file:
@@ -263,7 +264,7 @@ if __name__ == "__main__":
             filepath=song.filename,
             length=song.length
         )
-    for song in all_songs
+        for song in all_songs
     ]
     
     local_library.all_songs = new_songs
