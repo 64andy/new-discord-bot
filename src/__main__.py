@@ -54,4 +54,8 @@ if __name__ == "__main__":
     # Load the database
     init_database()
     
-    bot.run(os.environ['TOKEN'])
+    try:
+        token = os.environ['TOKEN']
+    except KeyError:
+        raise KeyError("Environment variable 'TOKEN' is not set. Have you created a .env file?")
+    bot.run(token)

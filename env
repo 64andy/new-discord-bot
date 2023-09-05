@@ -1,3 +1,9 @@
-# Paste your bot token, and rename this file to `.env`
-TOKEN = PASTE_HERE
-LOCAL_MUSIC_FOLDER= PASTE_HERE
+# NOTE: Create a copy of this file called `.env`, and write the values there
+# Do NOT write them here, it does nothing and can make them publicly visible
+
+# Your bot token, as given by https://discord.com/developers/applications
+TOKEN=PASTE_HERE
+
+# If you want to play music files saved on your PC, add its folder path here
+# e.g. C:\Users\Jimmy\Music
+LOCAL_MUSIC_FOLDER=PASTE_HERE
