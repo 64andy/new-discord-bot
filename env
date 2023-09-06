@@ -5,5 +5,6 @@
 TOKEN=PASTE_HERE
 
 # If you want to play music files saved on your PC, add its folder path here
+# It will recursively search through all sub-folders for music files
 # e.g. C:\Users\Jimmy\Music
 LOCAL_MUSIC_FOLDER=PASTE_HERE

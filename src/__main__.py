@@ -24,8 +24,8 @@ class MyBot(commands.Bot):
 bot = MyBot(
     intents=intents,
     command_prefix=['alexa', 'navi', 'alexa,', 'navi,'],
-    description='[Andy stole this from Github]'
-                '(https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d)',
+    description='Personal Discord Music Bot that can also play local music. Forked from '
+                'https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d',
 )
 bot.strip_after_prefix = True
 

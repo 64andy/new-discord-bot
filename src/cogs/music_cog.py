@@ -1,15 +1,9 @@
-# -*- coding: utf-8 -*-
-
 """
+Original created by vbe0201
 https://gist.github.com/vbe0201/ade9b80f2d3b64643d854938d40a0a2d
-
 Copyright (c) 2019 Valentin B.
 
-Requirements:
-Python 3.8+
-pip install -U discord.py pynacl yt-dlp
-
-You also need FFmpeg in your PATH environment variable or the FFmpeg.exe binary in your bot's directory on Windows.
+Modified by 64andy, 2021
 """
 
 import logging
@@ -31,7 +25,7 @@ EMPTY_QUEUE_MSG = 'Queue is empty.'
 logger = logging.getLogger(__name__)
 
 class Music(commands.Cog):
-    def __init__(self, bot: commands.Bot, music_folder: str):
+    def __init__(self, bot: commands.Bot, music_folder: Optional[str]):
         self.bot = bot
         self.voice_states: Dict[int, VoiceState] = {}
         if music_folder is None:
@@ -142,7 +136,7 @@ class Music(commands.Cog):
             voice_state.voice.pause()
             await ctx.message.add_reaction('⏯')
 
-    @commands.command(name='resume')
+    @commands.command(name='resume', aliases=['unpause'])
     @commands.has_permissions(manage_guild=True)
     async def _resume(self, ctx: commands.Context):
         """Resumes a currently paused song."""
