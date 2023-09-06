@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 from typing import List, Optional
 
-import math
 import random
 
 from discord.ext.commands.context import Context
