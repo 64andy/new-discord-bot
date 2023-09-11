@@ -24,7 +24,7 @@ EMPTY_QUEUE_MSG = 'Queue is empty.'
 
 logger = logging.getLogger(__name__)
 
-class Music(commands.Cog):
+class MusicCog(commands.Cog):
     def __init__(self, bot: commands.Bot, music_folder: Optional[str]):
         self.bot = bot
         self.voice_states: Dict[int, VoiceState] = {}

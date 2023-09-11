@@ -1,3 +1,3 @@
-from .archive_cog import Archive
-from .music_cog import Music
-from .fun_cog import Oracle
+from .archive_cog import ArchiveCog
+from .music_cog import MusicCog
+from .fun_cog import OracleCog

@@ -7,7 +7,7 @@ import random
 from discord.ext.commands.context import Context
 
 
-class Oracle(commands.Cog):
+class OracleCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 

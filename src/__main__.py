@@ -4,7 +4,7 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands
 
-from .cogs import Music, Archive, Oracle
+from .cogs import MusicCog, ArchiveCog, OracleCog
 from .cogs.db.models import get_command_prefix, init_database
 
 # alexa play https://www.youtube.com/watch?v=dv1ypynSLzY
@@ -40,9 +40,9 @@ async def on_ready():
 
 async def add_all_cogs(bot):
     """Discord.py 2.0 makes adding cogs an async operation"""
-    await bot.add_cog(Music(bot, music_folder=os.environ.get("LOCAL_MUSIC_FOLDER")))
-    await bot.add_cog(Archive(bot))
-    await bot.add_cog(Oracle(bot))
+    await bot.add_cog(MusicCog(bot, music_folder=os.environ.get("LOCAL_MUSIC_FOLDER")))
+    await bot.add_cog(ArchiveCog(bot))
+    await bot.add_cog(OracleCog(bot))
 
 
 if __name__ == "__main__":

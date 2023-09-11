@@ -8,7 +8,7 @@ from .db.models import get_archive_channel, set_archive_channel
 TICK_EMOJI = discord.PartialEmoji(name='✅')
 
 
-class Archive(commands.Cog):
+class ArchiveCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
