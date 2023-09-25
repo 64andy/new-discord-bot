@@ -157,7 +157,7 @@ class MusicCog(commands.Cog):
             voice_state.voice.stop()
             await ctx.message.add_reaction('⏹')
 
-    @commands.command(name='skip', aliases=['no'])
+    @commands.command(name='skip', aliases=['no', 'next'])
     async def _skip(self, ctx: commands.Context):
         """Skips the current song"""
         voice_state = self.get_voice_state(ctx.channel)
@@ -217,6 +217,18 @@ class MusicCog(commands.Cog):
             return await ctx.send(EMPTY_QUEUE_MSG)
 
         voice_state.songs.pop(index - 1)
+        await ctx.message.add_reaction('✅')
+
+    @commands.command(name='move')
+    async def _move(self, ctx: commands.Context, song_pos: int, target_pos: int):
+        """Moves the song at the queue position to the target position."""
+        voice_state = self.get_voice_state(ctx.channel)
+
+        if len(voice_state.songs) == 0:
+            return await ctx.send(EMPTY_QUEUE_MSG)
+
+        song = voice_state.songs.pop(song_pos - 1)
+        voice_state.songs.insert(target_pos - 1, song)
         await ctx.message.add_reaction('✅')
 
     @commands.command(name='loop')
@@ -329,6 +341,8 @@ class MusicCog(commands.Cog):
     @_join.before_invoke
     @_play.before_invoke
     @_test.before_invoke
+    @_move.before_invoke
+    @_remove.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
             raise commands.CommandError(

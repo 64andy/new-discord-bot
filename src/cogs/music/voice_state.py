@@ -39,6 +39,8 @@ class SongQueue(asyncio.Queue[AbstractAudio]):
         del self._queue[index]
         return ret
 
+    def insert(self, index: int, item: AbstractAudio):
+        self._queue.insert(index, item)
 
 class VoiceState:
     def __init__(self, bot: commands.Bot, channel: discord.TextChannel):
