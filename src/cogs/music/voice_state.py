@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class VoiceError(commands.CommandInvokeError):
     pass
 
-class SongQueue(asyncio.Queue):
+class SongQueue(asyncio.Queue[AbstractAudio]):
     def __getitem__(self, item):
         if isinstance(item, slice):
             return list(itertools.islice(self._queue, item.start, item.stop, item.step))
@@ -34,8 +34,10 @@ class SongQueue(asyncio.Queue):
     def shuffle(self):
         random.shuffle(self._queue)
 
-    def remove(self, index: int):
+    def pop(self, index: int = -1) -> AbstractAudio:
+        ret = self._queue[index]
         del self._queue[index]
+        return ret
 
 
 class VoiceState:
@@ -53,7 +55,7 @@ class VoiceState:
         self.audio_player = bot.loop.create_task(self.audio_player_task())
 
     def __del__(self):
-        print("Deleting VoiceState in channel", self.channel.name)
+        logger.info("Deleting VoiceState in channel {}", self.channel.name)
         self.audio_player.cancel()
 
     @property

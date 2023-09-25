@@ -216,7 +216,7 @@ class MusicCog(commands.Cog):
         if len(voice_state.songs) == 0:
             return await ctx.send(EMPTY_QUEUE_MSG)
 
-        voice_state.songs.remove(index - 1)
+        voice_state.songs.pop(index - 1)
         await ctx.message.add_reaction('✅')
 
     @commands.command(name='loop')
