@@ -153,7 +153,7 @@ class MusicCog(commands.Cog):
 
         voice_state.songs.clear()
 
-        if not voice_state.is_playing:
+        if voice_state.is_playing:
             voice_state.voice.stop()
             await ctx.message.add_reaction('⏹')
 
