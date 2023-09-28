@@ -300,6 +300,9 @@ class MusicCog(commands.Cog):
         # Has local music been set?
         if self.local_library is None:
             return await interaction.response.send_message("❌ Can't play local songs, as the bot runner hasn't set a music folder. Try the normal play command")
+        # Check they're in a channel
+        if not await self.ensure_voice_state_slash_command(interaction):
+            return
         # `title` or `album` need to be set       
         if not title and not album:
             if not artist:
@@ -352,5 +355,20 @@ class MusicCog(commands.Cog):
             if ctx.voice_client.channel != ctx.author.voice.channel:
                 raise commands.CommandError(
                     'Bot is already in a voice channel.')
-        
 
+    async def ensure_voice_state_slash_command(self, interaction: discord.Interaction):
+        """
+        We have to do this differently for slash commands :(
+        """
+        if not interaction.user.voice or not interaction.user.voice.channel:
+            await interaction.response.send_message(
+                'You are not connected to any voice channel.')
+            return False
+
+        if interaction.guild.voice_client:
+            if interaction.guild.voice_client.channel != interaction.user.voice.channel:
+                await interaction.response.send_message(
+                    'Bot is already in a voice channel.')
+            return False
+        
+        return True
