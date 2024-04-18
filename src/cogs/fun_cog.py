@@ -4,9 +4,6 @@ from typing import List, Optional
 
 import random
 
-from discord.ext.commands.context import Context
-
-
 class OracleCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
