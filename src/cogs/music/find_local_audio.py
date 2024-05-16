@@ -16,8 +16,9 @@ from music_tag import load_file
 from music_tag.id3 import Id3File
 from thefuzz import fuzz, process
 
-MIN_SIMILARITY = 75  # Fuzzy search needs 75% confidence in the similarity
-DISCORD_AUTOCOMPLETE_LIMIT = 25  # Discord autocomplete only allows 25 suggestions max
+AUTOCOMPLETE_MIN_SIMILARITY = 85    # When giving auto-complete options, we'll match 85% similarity
+SELECTION_MIN_SIMILARITY = 95       # When actually picking the songs, it'll match anything 95% similar
+DISCORD_AUTOCOMPLETE_LIMIT = 25     # Discord autocomplete only allows 25 suggestions max
 
 
 logger = logging.getLogger(__name__)
@@ -141,6 +142,9 @@ class LocalAudioLibrary:
             self.field_to_song["artist"][song.artist].add(song)
             self.field_to_song["album"][song.album].add(song)
 
+    # TODO: Replace the song selection code to NOT use fuzzy search
+    #       We have autocomplete, the user should be using that.
+
     def find_possible_songs(self, **kwargs) -> List[SongData]:
         best = self.all_songs
 
@@ -165,7 +169,7 @@ class LocalAudioLibrary:
                     best,
                     processor=_tag_processor(attr_name),
                     scorer=fuzz.ratio,  # Scorer to be improved
-                    score_cutoff=MIN_SIMILARITY,
+                    score_cutoff=SELECTION_MIN_SIMILARITY,
                     limit=None,
                 )
                 print(f"{attr_name!r} search. {len(best)} result(s):")
@@ -192,7 +196,7 @@ class LocalAudioLibrary:
             choices=possible_songs,
             processor=get_tag,
             scorer=fuzz.partial_ratio,  # Scorer to be improved
-            score_cutoff=MIN_SIMILARITY,
+            score_cutoff=AUTOCOMPLETE_MIN_SIMILARITY,
             limit=None
         )
 
