@@ -297,32 +297,37 @@ class MusicCog(commands.Cog):
         artist: Optional[str]=""
         ):
         """Plays a local song if `title` is set, or a whole album if it isn't."""
+        logger.info("/play-local (title=%s, album=%s, artist=%s})", title, album, artist)
         # Has local music been set?
         if self.local_library is None:
             return await interaction.response.send_message("❌ Can't play local songs, as the bot runner hasn't set a music folder. Try the normal play command")
-        # Check they're in a channel
+        # If they entered nothing, then error     
+        if not title and not album and not artist:
+            await interaction.response.send_message(
+                "❌ No fields were entered.\n"
+                "At minimum, the `title` or `album` fields must be entered.")
+            return
+        # Searching only by artist isn't allowed (too broad of a search)
+        if artist and not title and not album:
+            await interaction.response.send_message(
+                "Sorry, you can't search **only** by artist.\n"
+                "At minimum, the `title` or `album` fields must be entered.")
+            return
+        # Ensure everything right for us to join the VC
         if not await self.ensure_voice_state_slash_command(interaction):
             return
-        # `title` or `album` need to be set       
-        if not title and not album:
-            if not artist:
-                await interaction.response.send_message(
-                    "❌ No fields were entered.\n"
-                    "At minimum, the `title` or `album` fields must be entered.")
-            else:
-                await interaction.response.send_message(
-                    "Sorry, you can't search **only** by artist.\n"
-                    "At minimum, the `title` or `album` fields must be entered.")
-            return
 
+        # Join the VC
         voice_state = self.get_voice_state(interaction.channel)
         await self.join_voice_channel(voice_state, interaction.user)
 
+        # Now, find the song they asked for
         possibilities = self.local_library.find_possible_songs(title=title, album=album, artist=artist)
         if len(possibilities) == 0:
             return await interaction.response.send_message("Error: Couldn't find any songs from your search")
         
         if title:
+        # Song search: Find the *ONE* song they asked for
             audio_file = possibilities[0]
             song = LocalAudioSource(audio_file, added_by=interaction.user)
             print('putting the local song:', song.name)
@@ -332,6 +337,7 @@ class MusicCog(commands.Cog):
             await voice_state.songs.put(song)
             await interaction.response.send_message(MSG)
         elif album:
+        # Album search: Add every song in the specified album
             possibilities.sort()
             n_songs = len(possibilities)
             print('putting', n_songs, "local song(s)")
@@ -339,6 +345,7 @@ class MusicCog(commands.Cog):
                 song = LocalAudioSource(audio_file, added_by=interaction.user)
                 await voice_state.songs.put(song)
             await interaction.response.send_message(f'Enqueued {n_songs} songs from **{audio_file.album}**')
+        print(4)
         
     
     @_join.before_invoke
@@ -356,19 +363,20 @@ class MusicCog(commands.Cog):
                 raise commands.CommandError(
                     'Bot is already in a voice channel.')
 
-    async def ensure_voice_state_slash_command(self, interaction: discord.Interaction):
+    async def ensure_voice_state_slash_command(self, interaction: discord.Interaction) -> bool:
         """
-        We have to do this differently for slash commands :(
+        Returns true if we can move into the caller's voice channel
         """
+        # The person initiating this command MUST be in a voice channel
         if not interaction.user.voice or not interaction.user.voice.channel:
             await interaction.response.send_message(
                 'You are not connected to any voice channel.')
             return False
-
-        if interaction.guild.voice_client:
-            if interaction.guild.voice_client.channel != interaction.user.voice.channel:
-                await interaction.response.send_message(
-                    'Bot is already in a voice channel.')
-            return False
         
+        # They can't already be in another voice channel
+        if (interaction.guild.voice_client
+            and interaction.guild.voice_client.channel != interaction.user.voice.channel):
+            await interaction.response.send_message(
+                'Bot is already in another voice channel.')
+            return False
         return True
