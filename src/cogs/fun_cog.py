@@ -34,14 +34,15 @@ class OracleCog(commands.Cog):
             'Very doubtful.']
 
         snark = [
-            'Did you hear something?',
             'You forgot the question.',
             'Try adding a question next time.',
-            'Try again, dipshit.']
+            'Cat got your tongue? Speak your question.']
 
         if question == None:
-            answer = random.choice(snark)
+            answer = random.choice(snark + " (Format: `alexa 8ball `__**`question goes here`**__)")
         else:
+            # Unique so the same person asking the same question gets the same answer
+            # (within the same session, PYTHONHASHSEED is random on each start-up)
             index = hash(ctx.message.content) + ctx.message.author.id
             index %= len(answers)
             answer = answers[index]
@@ -57,10 +58,14 @@ class OracleCog(commands.Cog):
     @commands.command(name="choose", aliases=["decide", "pick"])
     async def _choose(self, ctx: commands.Context, *, options: Optional[str]):
         """Randomly selects from a user-generated list of options."""
+        FORMAT = " (Format: `alexa choose `__**`choices, separated, by, commas`**__)"
         if options is None:
             selection = None
         else:
-            selection = random.choice(options.split(','))
+            # Ignore all the empty options
+            selection = random.choice([value.strip()
+                                       for value in options.split(',')
+                                       if len(value) == 0 or value.isspace()])
 
         snark = [
             'Gee, quite the selection there.',
@@ -71,20 +76,20 @@ class OracleCog(commands.Cog):
 
         forcedsnark = [
             'Last time I had this many options there was a gun to my head.',
-            'Is that my only choice?',
-            'Hmm, what am I gonna pick? I wonder.',
+            'Is that my only choice? Ok, {option}',
             'What happens if I don\'t?',
-            f'Out of all the options, I guess I\'d have to go with {options}.',
-            f'"{options}"? Is that my only option?',
+            'Out of all the options, I guess I\'d have to go with {option}.',
+            '"{option}"? Is that my only option?',
             'You\'re supposed to give me a comma-separated list.'
         ]
 
         if selection == None:
-            await ctx.send(random.choice(snark))
-        if len(options.split(',')) == 1:
-            await ctx.send(random.choice(forcedsnark))
+            msg = random.choice(snark) + FORMAT
+        elif len(options.split(',')) == 1:
+            msg = random.choice(forcedsnark).format(option=selection) + FORMAT
         else:
-            await ctx.send(selection)
+            msg = selection
+        await ctx.send(msg)
 
     @commands.command(name="d20")
     async def _d20(self, ctx: commands.Context):
@@ -119,7 +124,7 @@ class OracleCog(commands.Cog):
 
         stringsnark = [
             'What am I supposed to be rolling here?',
-            'An integer asshat.',
+            'An integer genius, whole numbers only.',
             'I only work in numbers'
         ]
 
