@@ -91,7 +91,9 @@ def _get_all_songs(filepath: str) -> List[SongData]:
                 if song_data is not None:
                     all_songs.append(SongData.from_music_tag(song_data))
             except NotImplementedError as e:
-                logger.warning(f"Can't open {full_path}: {e!r}")
+                logger.warning(f"Unsupported file: {full_path!r} ({e!r})")
+            except Exception as e:
+                logger.error(f"Error parsing file {full_path!r}: {type(e).__name__}: {e!r}")
                 
 
     return all_songs
