@@ -65,7 +65,7 @@ class OracleCog(commands.Cog):
             # Ignore all the empty options
             selection = random.choice([value.strip()
                                        for value in options.split(',')
-                                       if len(value) == 0 or value.isspace()])
+                                       if len(value) > 0 and not value.isspace()])
 
         snark = [
             'Gee, quite the selection there.',
