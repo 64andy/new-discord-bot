@@ -267,7 +267,7 @@ class MusicCog(commands.Cog):
                 await ctx.send(f'An error occurred while processing this request: {str(e)}')
             else:
                 for song in audio_to_add:
-                    print('putting the YT song:', song.name)
+                    logger.info('putting the YT song: %s', song.name)
                     await voice_state.songs.put(song)
                 if len(audio_to_add) > 1:
                     await ctx.send(f'Enqueued {len(audio_to_add)} songs')
@@ -275,14 +275,10 @@ class MusicCog(commands.Cog):
                     await ctx.send(f'Enqueued song: {audio_to_add[0]}')
 
     @commands.command(name='test')
-    async def _test(self, ctx: commands.Context, testing: str = None):
+    async def _test(self, ctx: commands.Context):
         """quick shortcut to test playback"""
 
-        if testing == None:
-            await ctx.invoke(self._play, search="https://www.youtube.com/watch?v=8xwt0uTKSC0")
-
-        if testing == "playlist":
-            await ctx.invoke(self._play, search="https://www.youtube.com/playlist?list=OLAK5uy_l1zOAMjxnu3OE8lbtqsItSwRR2LZjIQD0")
+        await ctx.invoke(self._play, search="https://www.youtube.com/watch?v=8xwt0uTKSC0")
 
     
     @app_commands.command(name="play-local")
@@ -330,7 +326,7 @@ class MusicCog(commands.Cog):
         # Song search: Find the *ONE* song they asked for
             audio_file = possibilities[0]
             song = LocalAudioSource(audio_file, added_by=interaction.user)
-            print('putting the local song:', song.name)
+            logger.info('putting the local song: %s', song.name)
             MSG = f'Enqueued song: {song}'
             if len(possibilities) > 1:
                 MSG = f'⚠ {len(possibilities)} possible song matches. Use the album & artist fields to filter.\n' + MSG
@@ -340,12 +336,11 @@ class MusicCog(commands.Cog):
         # Album search: Add every song in the specified album
             possibilities.sort()
             n_songs = len(possibilities)
-            print('putting', n_songs, "local song(s)")
+            logger.info("putting %s local song(s)", n_songs)
             for audio_file in possibilities:
                 song = LocalAudioSource(audio_file, added_by=interaction.user)
                 await voice_state.songs.put(song)
             await interaction.response.send_message(f'Enqueued {n_songs} songs from **{audio_file.album}**')
-        print(4)
         
     
     @_join.before_invoke
