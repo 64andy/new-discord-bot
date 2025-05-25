@@ -59,15 +59,9 @@ class YTDLSource(AbstractAudio):
         If it's a playlist, every song in the playlist is added.
         """
         # Step 1. Ask YouTube for what the user searched for
-        loop = asyncio.get_event_loop()
-        partial = functools.partial(
-            YTDLSource.YTDL.extract_info, search, download=False, process=True
-        )
+        get_song_info = lambda: YTDLSource.YTDL.extract_info(search, download=False, process=False)
 
-        start = time.perf_counter()
-        data = await loop.run_in_executor(None, partial)
-        end = time.perf_counter()
-        print(f"from_ctx()'s YTDL query took {end-start:.3f}s")
+        data = await asyncio.get_event_loop().run_in_executor(None, get_song_info)
 
         if data is None:
             raise YTDLError(f"Couldn't find anything that matches `{search}`")
@@ -79,7 +73,7 @@ class YTDLSource(AbstractAudio):
             data_to_process = [data]
         elif "_type" in data and data["_type"] == "playlist":
             # Is a playlist, each video is inside "entries"
-            data_to_process = data["entries"]
+            data_to_process = list(data["entries"]) # When process=False, 'entries' is a generator
         else:
             print(f"!!! YTDLSource.from_query(): UNKNOWN RETURN TYPE with {search=}")
 
