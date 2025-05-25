@@ -133,7 +133,9 @@ class LocalAudioLibrary:
     all_songs: List[SongData]
 
     def __init__(self, audio_directory: str):
+        logger.info(f"Searching {audio_directory} for songs...")
         self.all_songs = _get_all_songs(audio_directory)
+        logger.info(f"Found {len(self.all_songs)} song(s)")
         self.field_to_song: Dict[str, Dict[str, Set[SongData]]] = {
             "title": defaultdict(set),
             "artist": defaultdict(set),

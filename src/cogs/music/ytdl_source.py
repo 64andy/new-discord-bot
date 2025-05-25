@@ -12,19 +12,15 @@ from discord.ext import commands
 from .abstract_audio import AbstractAudio
 
 
-# Silence useless bug reports messages
-yt_dlp.utils.bug_reports_message = lambda: ""
-
 YTDL_OPTIONS = {
     "format": "bestaudio/best",
     "extractaudio": True,
     "audioformat": "mp3",
-    "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
     "restrictfilenames": True,
     "noplaylist": False,
     "nocheckcertificate": True,
     "ignoreerrors": False,
-    "logtostderr": False,
+    "logtostderr": True,
     "quiet": True,
     "no_warnings": True,
     "default_search": "auto",
