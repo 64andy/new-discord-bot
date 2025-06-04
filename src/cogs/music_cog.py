@@ -29,7 +29,7 @@ class MusicCog(commands.Cog):
         self.bot = bot
         self.voice_states: Dict[int, VoiceState] = {}
         if music_folder is None:
-            logging.warn(".env variable `LOCAL_MUSIC_FOLDER` not set. Playing local music is disabled.")
+            logging.warning(".env variable `LOCAL_MUSIC_FOLDER` not set. Playing local music is disabled.")
             self.local_library = None
         else:
             self.local_library = LocalAudioLibrary(music_folder)
@@ -53,7 +53,7 @@ class MusicCog(commands.Cog):
 
         return state
 
-    def cog_unload(self):
+    async def cog_unload(self):
         for state in self.voice_states.values():
             self.bot.loop.create_task(state.stop())
 
