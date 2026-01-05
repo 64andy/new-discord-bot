@@ -11,7 +11,7 @@ from .abstract_audio import AbstractAudio
 
 
 YTDL_OPTIONS = {
-    "format": "bestaudio/best",
+    "format": "wa", # Worst audio, because sometimes Bandcamp is too good
     "extractaudio": True,
     "audioformat": "mp3",
     "restrictfilenames": True,
@@ -24,12 +24,16 @@ YTDL_OPTIONS = {
     "default_search": "auto",
     "source_address": "0.0.0.0",
 }
+YTDL = yt_dlp.YoutubeDL(YTDL_OPTIONS)
+
+# YT-DLP uses a format selector to choose which version to download.
+# In our case, we want the one with best audio.
+FORMAT_SELECTOR = YTDL.build_format_selector(YTDL_OPTIONS['format'])
 
 FFMPEG_OPTIONS = {
     "options": "-vn",
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
 }
-
 
 class YTDLError(commands.CommandError):
     pass
@@ -40,18 +44,23 @@ def _find_video_url(data: dict) -> str:
     Searches the video information returned by yt-dlp, trying to find
     the backing URL from which the bot can play.
     """
-    ### This is a hack. Older versions of the yt-dlp API gave us this URL up-front.
-    ### Now it doesn't. Until I learn how the downloader picks the URL, we're stuck here
-    for video_format in data['formats']:
-        # Some options are video only
-        if 'audio_channels' in video_format and video_format['audio_channels'] is not None:
-            return video_format['url']
-    raise YTDLError(f"Unable to find an audio version of https://youtu.be/{data['id']}")
+    # Websites like YouTube can provide hundreds of different ways of seeing a video
+    #  (The video at 144p, 720p, 1080p, audio only, auto-dubbed audio...)
+    # However, we need the SINGLE URL to play.
+    # ---
+    # YT-DLP figures out which one of these is the one you want, using
+    #  the format string in a "format_selector"
+    # https://github.com/yt-dlp/yt-dlp/blob/cec1f1df792fe521fff2d5ca54b5c70094b3d96a/yt_dlp/YoutubeDL.py#L3047
+    format_to_download = YTDL._select_formats(data['formats'], FORMAT_SELECTOR)
+    if len(format_to_download) == 0:
+        raise YTDLError(f"Unable to find an audio version of {data['url']}")
+    best_format = format_to_download[-1]
+    return best_format['url']
 
 
 class YTDLSource(AbstractAudio):
 
-    YTDL = yt_dlp.YoutubeDL(YTDL_OPTIONS)
+    YTDL = YTDL
 
     def __init__(self, data: dict, added_by: discord.User):
         self.data = data
@@ -59,7 +68,7 @@ class YTDLSource(AbstractAudio):
         self.requester = added_by
 
     def __str__(self):
-        return f'**{self.name}** by **{self.data["uploader"]}**'
+        return f'**{self.name}** by **{self.artist}**'
 
     @classmethod
     async def from_query(
@@ -75,12 +84,13 @@ class YTDLSource(AbstractAudio):
         ### If it's a URL for a playlist, this grabs each song.
         loop = asyncio.get_event_loop()
         # Step 1. Ask YouTube for what the user searched for
-        get_song_info = lambda: YTDLSource.YTDL.extract_info(search, download=False, process=False)
+        # WARNING: `process=True` is VERY expensive, but gives us info like the uploader easier
+        get_song_info = lambda: YTDL.extract_info(search, download=False, process=True)
         data = await loop.run_in_executor(None, get_song_info)
         # yt-dlp's API changed: Now, if you do a text search (alexa play idkhow), it uses the 'generic' extractor which is useless
         # We need to change our query to `ytsearch:idkhow` so it'll use the appropriate extractors
         if data.get('extractor') == 'generic':
-            get_song_info = lambda: YTDLSource.YTDL.extract_info(f"ytsearch:{search}", download=False, process=False)
+            get_song_info = lambda: YTDL.extract_info(f"ytsearch:{search}", download=False, process=False)
             data = await loop.run_in_executor(None, get_song_info)
 
 
@@ -101,15 +111,13 @@ class YTDLSource(AbstractAudio):
         if data_to_process is None or len(data_to_process) == 0:
             raise YTDLError(f"Couldn't find anything that matches `{search}`")
         return [
-            YTDLSource(
-                data, added_by
-            )
+            YTDLSource(data, added_by)
             for data in data_to_process
         ]
 
     async def generate_source(self) -> discord.FFmpegPCMAudio:
         loop = asyncio.get_event_loop()
-        partial = lambda: YTDLSource.YTDL.extract_info(
+        partial = lambda: YTDL.extract_info(
             self.url,
             download=False,
             process=False,
@@ -143,7 +151,7 @@ class YTDLSource(AbstractAudio):
         elif "uploader_urL" not in self.data:   # Just no URL (Can happen)
             uploader = self.data['uploader']
         else:                                   # Link to the channel
-            uploader = f'[{self.data["uploader"]}]({self.data["uploader_url"]})'
+            uploader = f'[{self.data["uploader"]}]({self.data["url"]})'
 
         return embed.add_field(name="Uploader", value=uploader)
 
@@ -153,8 +161,14 @@ class YTDLSource(AbstractAudio):
 
     @property
     def url(self) -> str:
-        return f"https://youtu.be/{self.video_id}"
+        return self.data.get('webpage_url') or self.data.get('original_url')
 
     @property
     def length(self) -> int:
         return self.data["duration"]
+    
+    @property
+    def artist(self) -> str:
+        return (self.data.get('uploader')   # YouTube
+                or self.data.get('artist')  # Most other services
+                or "<UNKNOWN ARTIST>")      # If you see this, try fixing it
