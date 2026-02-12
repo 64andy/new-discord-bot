@@ -1,14 +1,14 @@
 """
 A class for searching local files
 """
-from collections import defaultdict
 import logging
-from math import inf
 import os
+import multiprocessing
 import random
+from collections import defaultdict
 from dataclasses import dataclass
+from math import inf
 from pathlib import Path
-import pprint
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import discord
@@ -22,6 +22,16 @@ DISCORD_AUTOCOMPLETE_LIMIT = 25     # Discord autocomplete only allows 25 sugges
 
 
 logger = logging.getLogger(__name__)
+
+def get_song_data(filename: str) -> "SongData | None":
+    try:
+        song_data: Id3File = load_file(filename, err=None)
+        if song_data is not None:
+            return SongData.from_music_tag(song_data)
+    except NotImplementedError as e:
+        logger.warning(f"Unsupported file: {filename!r} ({e!r})")
+    except Exception as e:
+        logger.error(f"Error parsing file {filename!r}: {type(e).__name__}: {e!r}")
 
 @dataclass(frozen=True)
 class SongData:
@@ -86,17 +96,11 @@ def _get_all_songs(filepath: str) -> List[SongData]:
     for (dirname, _, filenames) in os.walk(filepath):
         for fname in filenames:
             full_path = os.path.join(dirname, fname)
-            try:
-                song_data: Id3File = load_file(full_path, err=None)
-                if song_data is not None:
-                    all_songs.append(SongData.from_music_tag(song_data))
-            except NotImplementedError as e:
-                logger.warning(f"Unsupported file: {full_path!r} ({e!r})")
-            except Exception as e:
-                logger.error(f"Error parsing file {full_path!r}: {type(e).__name__}: {e!r}")
-                
+            all_songs.append(full_path)
+    print(len(all_songs), "files found, parsing (This may take a while)")
 
-    return all_songs
+    pool = multiprocessing.Pool(16)
+    return list(filter(None, pool.map(get_song_data, all_songs)))
 
 def get_x_unique_values(items: Iterable, x: int) -> Iterable:
     """Returns upto `x` non-duplicate items from `items`"""
@@ -133,9 +137,9 @@ class LocalAudioLibrary:
     all_songs: List[SongData]
 
     def __init__(self, audio_directory: str):
-        logger.info(f"Searching {audio_directory} for songs...")
+        print(f"Searching {audio_directory} for songs, please wait...")
         self.all_songs = _get_all_songs(audio_directory)
-        logger.info(f"Found {len(self.all_songs)} song(s)")
+        print(f"Found {len(self.all_songs)} song(s)")
         self.field_to_song: Dict[str, Dict[str, Set[SongData]]] = {
             "title": defaultdict(set),
             "artist": defaultdict(set),
@@ -145,9 +149,6 @@ class LocalAudioLibrary:
             self.field_to_song["title"][song.title].add(song)
             self.field_to_song["artist"][song.artist].add(song)
             self.field_to_song["album"][song.album].add(song)
-
-    # TODO: Replace the song selection code to NOT use fuzzy search
-    #       We have autocomplete, the user should be using that.
 
     def find_possible_songs(self, **kwargs) -> List[SongData]:
         best = self.all_songs
@@ -176,10 +177,10 @@ class LocalAudioLibrary:
                     score_cutoff=SELECTION_MIN_SIMILARITY,
                     limit=None,
                 )
-                print(f"{attr_name!r} search. {len(best)} result(s):")
-                best = [_merge(entry) for entry in best]
-                pprint.pprint(best[:10])
-                print("===")
+                # print(f"{attr_name!r} search. {len(best)} result(s):")
+                # best = [_merge(entry) for entry in best]
+                # pprint.pprint(best[:10])
+                # print("===")
 
         return [song for (song, _conf) in best]
 
