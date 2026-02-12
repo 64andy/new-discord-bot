@@ -8,6 +8,7 @@ Modified by 64andy, 2021
 
 import logging
 import math
+import os.path
 from typing import Dict, List, Optional
 
 import discord
@@ -25,22 +26,37 @@ EMPTY_QUEUE_MSG = 'Queue is empty.'
 logger = logging.getLogger(__name__)
 
 class MusicCog(commands.Cog):
+    
+    local_library: LocalAudioLibrary | None
+    
     def __init__(self, bot: commands.Bot, music_folder: Optional[str]):
         self.bot = bot
         self.voice_states: Dict[int, VoiceState] = {}
+        # Can we play local music?
+        failed = False
+        # 1. Is the folder set?
         if music_folder is None:
             logging.warning(".env variable `LOCAL_MUSIC_FOLDER` not set. Playing local music is disabled.")
-            self.local_library = None
-        else:
-            self.local_library = LocalAudioLibrary(music_folder)
-        # Manually attach the autocomplete callbacks, because decorators
-        # are processed at compile time, and local_library doesn't yet
-        if self.local_library is not None:
-            app_commands.autocomplete(
+            del self._play_local
+            return
+        # 2. Does the folder exist?
+        elif not os.path.isdir(music_folder):
+            logging.warning(".env variable `LOCAL_MUSIC_FOLDER` points to a non-existent folder")
+            del self._play_local
+            return
+
+        local_library = LocalAudioLibrary(music_folder)
+        # 3. Are there any songs?
+        if len(local_library.all_songs) == 0:
+            del self._play_local
+            return
+        self.local_library = local_library
+        self._play_local = app_commands.autocomplete(
                 title=self.local_library.get_autocomplete_suggestions('title'),
                 album=self.local_library.get_autocomplete_suggestions('album'),
                 artist=self.local_library.get_autocomplete_suggestions('artist')
             )(self._play_local)
+
 
 
     def get_voice_state(self, channel: discord.TextChannel) -> VoiceState:
