@@ -93,7 +93,10 @@ class VoiceState:
                 print("Got song", self.current)
                 source = await self.current.generate_source()
                 self.voice.play(source, after=self.play_next_song)
-                await self.channel.send(embed=self.current.create_embed())
+                
+                if not self.loop:
+                    await self.channel.send(embed=self.current.create_embed())
+
                 await self.next.wait()
         except asyncio.TimeoutError:
             if self.voice:
